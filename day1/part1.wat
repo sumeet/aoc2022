@@ -26,6 +26,20 @@
     (call $print_int_backwards)
   )
 
+  (func $solve (result i32)
+    (local $str_i i32) ;; init to 0
+    (local $winner i32) ;; init to 0
+    (local $cur_elf i32) ;; init to 0
+
+    (loop $loop
+    )
+  )
+
+  (func $getc (param $i i32) (result i32)
+    ;; beginning of string is 28
+    (i32.load8_u (i32.add (i32.const 28) (local.get $i)))
+  )
+
   (func $putc (param $c i32)
     ;; 12 is where the output goes
 
