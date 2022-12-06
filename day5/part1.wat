@@ -15,6 +15,19 @@
   (export "memory" (memory 0))
 
   ;; puzzle input (sample)
+  ;;(data
+  ;;  (i32.const 28)
+  ;;  ;; first line is empty because 1 offset
+  ;;  ;; each stack has a bunch of preallocated spaces
+  ;;  ;; afterwards so we don't have to dynamically
+  ;;  ;; allocate memory
+  ;;  ;; each stack has length 30
+  ;;                 "                              "
+  ;;                 "ZN                            "
+  ;;                 "MCD                           "                   
+  ;;                 "P                             "                   
+  ;;)
+  ;;(data (i32.const 3000) "move 1 from 2 to 1\nmove 3 from 1 to 3\nmove 2 from 2 to 1\nmove 1 from 1 to 2\u{0000}")
   (data
     (i32.const 28)
     ;; first line is empty because 1 offset
@@ -22,12 +35,18 @@
     ;; afterwards so we don't have to dynamically
     ;; allocate memory
     ;; each stack has length 30
-                   "                              "
-                   "ZN                            "
-                   "MCD                           "                   
-                   "P                             "                   
+                   "                                                                                                                                         "
+                   "DHNQTWVB                                                                                                                                 "
+                   "DWB                                                                                                                                      "                   
+                   "TSQWJC                                                                                                                                   "                   
+                   "FJRNZTP                                                                                                                                  "                   
+                   "GPVJMST                                                                                                                                  "                   
+                   "BWFTN                                                                                                                                    "                   
+                   "BLDQFHVN                                                                                                                                 "                   
+                   "HPFR                                                                                                                                     "                   
+                   "ZSMBLNPH                                                                                                                                 "                   
   )
-  (data (i32.const 3000) "move 1 from 2 to 1\nmove 3 from 1 to 3\nmove 2 from 2 to 1\nmove 1 from 1 to 2\u{0000}")
+  (data (i32.const 3000) "move 2 from 8 to 1\nmove 4 from 9 to 8\nmove 2 from 1 to 6\nmove 7 from 4 to 2\nmove 10 from 2 to 7\nmove 2 from 1 to 6\nmove 1 from 9 to 4\nmove 1 from 4 to 1\nmove 8 from 6 to 4\nmove 7 from 1 to 8\nmove 6 from 8 to 1\nmove 1 from 4 to 1\nmove 8 from 7 to 3\nmove 2 from 5 to 2\nmove 5 from 3 to 2\nmove 5 from 2 to 1\nmove 1 from 6 to 5\nmove 2 from 2 to 6\nmove 5 from 8 to 7\nmove 12 from 7 to 4\nmove 3 from 5 to 4\nmove 2 from 6 to 4\nmove 9 from 1 to 7\nmove 4 from 3 to 7\nmove 4 from 3 to 4\nmove 3 from 1 to 7\nmove 1 from 9 to 1\nmove 1 from 1 to 4\nmove 2 from 5 to 2\nmove 1 from 3 to 7\nmove 15 from 7 to 2\nmove 4 from 7 to 9\nmove 6 from 9 to 2\nmove 2 from 8 to 3\nmove 3 from 2 to 8\nmove 1 from 7 to 6\nmove 8 from 2 to 5\nmove 2 from 8 to 4\nmove 2 from 3 to 8\nmove 9 from 5 to 9\nmove 7 from 4 to 2\nmove 1 from 8 to 6\nmove 6 from 9 to 2\nmove 3 from 9 to 7\nmove 2 from 8 to 4\nmove 7 from 2 to 6\nmove 7 from 4 to 1\nmove 3 from 1 to 8\nmove 2 from 1 to 8\nmove 4 from 8 to 2\nmove 2 from 1 to 5\nmove 19 from 2 to 7\nmove 8 from 4 to 7\nmove 18 from 7 to 1\nmove 11 from 7 to 4\nmove 15 from 1 to 7\nmove 9 from 4 to 3\nmove 2 from 3 to 1\nmove 9 from 4 to 5\nmove 1 from 8 to 1\nmove 8 from 6 to 5\nmove 3 from 2 to 5\nmove 1 from 6 to 7\nmove 4 from 4 to 3\nmove 8 from 5 to 1\nmove 13 from 1 to 6\nmove 12 from 7 to 1\nmove 12 from 6 to 3\nmove 1 from 7 to 6\nmove 1 from 7 to 5\nmove 1 from 1 to 9\nmove 1 from 3 to 1\nmove 3 from 1 to 9\nmove 12 from 3 to 8\nmove 1 from 9 to 3\nmove 1 from 6 to 8\nmove 5 from 5 to 1\nmove 1 from 6 to 2\nmove 10 from 8 to 9\nmove 13 from 9 to 2\nmove 10 from 3 to 4\nmove 1 from 8 to 9\nmove 2 from 8 to 7\nmove 1 from 3 to 1\nmove 1 from 5 to 6\nmove 13 from 2 to 5\nmove 1 from 9 to 2\nmove 7 from 1 to 4\nmove 2 from 2 to 5\nmove 2 from 7 to 8\nmove 1 from 6 to 8\nmove 10 from 5 to 8\nmove 3 from 7 to 2\nmove 4 from 1 to 4\nmove 12 from 4 to 2\nmove 10 from 5 to 3\nmove 6 from 2 to 1\nmove 2 from 4 to 8\nmove 3 from 4 to 8\nmove 6 from 1 to 7\nmove 1 from 7 to 5\nmove 12 from 8 to 2\nmove 3 from 4 to 9\nmove 1 from 4 to 3\nmove 2 from 9 to 6\nmove 2 from 6 to 8\nmove 1 from 1 to 3\nmove 8 from 2 to 6\nmove 4 from 1 to 8\nmove 12 from 2 to 3\nmove 4 from 6 to 8\nmove 10 from 8 to 3\nmove 14 from 3 to 8\nmove 5 from 5 to 8\nmove 1 from 7 to 8\nmove 5 from 3 to 5\nmove 4 from 7 to 2\nmove 2 from 6 to 1\nmove 4 from 3 to 7\nmove 4 from 5 to 1\nmove 21 from 8 to 6\nmove 7 from 3 to 2\nmove 1 from 5 to 1\nmove 4 from 8 to 9\nmove 16 from 6 to 1\nmove 1 from 8 to 4\nmove 5 from 9 to 2\nmove 7 from 1 to 7\nmove 10 from 1 to 3\nmove 1 from 4 to 2\nmove 6 from 6 to 5\nmove 6 from 1 to 4\nmove 4 from 7 to 9\nmove 1 from 6 to 5\nmove 5 from 7 to 6\nmove 3 from 6 to 8\nmove 1 from 7 to 6\nmove 6 from 4 to 8\nmove 4 from 8 to 3\nmove 4 from 8 to 4\nmove 17 from 2 to 1\nmove 8 from 3 to 4\nmove 5 from 4 to 3\nmove 10 from 1 to 5\nmove 11 from 3 to 5\nmove 1 from 7 to 9\nmove 3 from 6 to 4\nmove 9 from 4 to 9\nmove 7 from 1 to 3\nmove 1 from 4 to 8\nmove 7 from 5 to 4\nmove 18 from 5 to 1\nmove 13 from 1 to 6\nmove 1 from 1 to 5\nmove 1 from 1 to 6\nmove 2 from 3 to 1\nmove 1 from 3 to 1\nmove 5 from 1 to 6\nmove 4 from 5 to 8\nmove 2 from 4 to 9\nmove 1 from 1 to 9\nmove 6 from 3 to 8\nmove 1 from 4 to 5\nmove 10 from 8 to 7\nmove 16 from 6 to 7\nmove 1 from 5 to 4\nmove 1 from 7 to 2\nmove 2 from 2 to 6\nmove 2 from 8 to 5\nmove 5 from 4 to 9\nmove 2 from 5 to 9\nmove 7 from 9 to 8\nmove 2 from 6 to 9\nmove 4 from 8 to 9\nmove 7 from 9 to 7\nmove 13 from 9 to 5\nmove 10 from 5 to 1\nmove 3 from 8 to 4\nmove 5 from 1 to 3\nmove 3 from 5 to 6\nmove 3 from 9 to 7\nmove 1 from 1 to 7\nmove 2 from 1 to 3\nmove 1 from 6 to 1\nmove 4 from 3 to 8\nmove 1 from 8 to 9\nmove 1 from 8 to 7\nmove 1 from 8 to 4\nmove 1 from 9 to 7\nmove 1 from 8 to 5\nmove 2 from 4 to 3\nmove 4 from 6 to 3\nmove 1 from 5 to 1\nmove 1 from 6 to 4\nmove 2 from 4 to 5\nmove 1 from 4 to 6\nmove 1 from 6 to 4\nmove 30 from 7 to 3\nmove 1 from 5 to 1\nmove 6 from 7 to 3\nmove 2 from 1 to 7\nmove 2 from 1 to 2\nmove 2 from 2 to 1\nmove 1 from 4 to 9\nmove 3 from 1 to 2\nmove 1 from 9 to 5\nmove 2 from 7 to 1\nmove 1 from 7 to 3\nmove 1 from 1 to 9\nmove 1 from 5 to 8\nmove 1 from 1 to 2\nmove 1 from 7 to 3\nmove 1 from 9 to 4\nmove 18 from 3 to 4\nmove 1 from 5 to 9\nmove 1 from 9 to 6\nmove 1 from 2 to 7\nmove 1 from 8 to 7\nmove 1 from 6 to 3\nmove 1 from 7 to 2\nmove 14 from 4 to 6\nmove 1 from 7 to 6\nmove 15 from 6 to 4\nmove 20 from 3 to 1\nmove 5 from 4 to 9\nmove 5 from 4 to 2\nmove 15 from 1 to 7\nmove 11 from 7 to 9\nmove 2 from 7 to 6\nmove 1 from 6 to 4\nmove 1 from 6 to 3\nmove 2 from 7 to 8\nmove 10 from 4 to 3\nmove 15 from 9 to 3\nmove 1 from 9 to 7\nmove 29 from 3 to 6\nmove 3 from 1 to 6\nmove 1 from 8 to 4\nmove 2 from 4 to 3\nmove 1 from 8 to 9\nmove 4 from 6 to 1\nmove 20 from 6 to 2\nmove 5 from 1 to 9\nmove 3 from 6 to 2\nmove 4 from 6 to 3\nmove 4 from 3 to 1\nmove 4 from 1 to 4\nmove 3 from 4 to 8\nmove 6 from 3 to 4\nmove 6 from 2 to 6\nmove 1 from 7 to 1\nmove 3 from 6 to 8\nmove 6 from 9 to 3\nmove 1 from 1 to 4\nmove 1 from 1 to 7\nmove 3 from 4 to 5\nmove 2 from 6 to 4\nmove 2 from 5 to 6\nmove 4 from 8 to 7\nmove 1 from 5 to 6\nmove 1 from 8 to 4\nmove 1 from 8 to 4\nmove 2 from 4 to 9\nmove 4 from 7 to 8\nmove 4 from 4 to 3\nmove 1 from 7 to 9\nmove 4 from 8 to 6\nmove 1 from 3 to 4\nmove 1 from 3 to 5\nmove 2 from 4 to 7\nmove 4 from 6 to 3\nmove 2 from 9 to 1\nmove 2 from 7 to 4\nmove 1 from 5 to 1\nmove 1 from 3 to 4\nmove 1 from 9 to 3\nmove 4 from 4 to 5\nmove 2 from 5 to 3\nmove 1 from 5 to 7\nmove 1 from 5 to 8\nmove 2 from 6 to 4\nmove 3 from 1 to 3\nmove 21 from 3 to 5\nmove 3 from 6 to 1\nmove 1 from 7 to 1\nmove 4 from 2 to 6\nmove 1 from 8 to 2\nmove 10 from 2 to 4\nmove 4 from 1 to 2\nmove 1 from 6 to 5\nmove 2 from 6 to 9\nmove 7 from 4 to 9\nmove 1 from 6 to 5\nmove 3 from 9 to 4\nmove 6 from 2 to 8\nmove 3 from 9 to 1\nmove 8 from 4 to 3\nmove 1 from 9 to 4\nmove 21 from 5 to 7\nmove 1 from 1 to 3\nmove 2 from 9 to 6\nmove 14 from 7 to 1\nmove 2 from 4 to 1\nmove 2 from 8 to 7\nmove 1 from 8 to 2\nmove 11 from 2 to 9\nmove 8 from 9 to 6\nmove 4 from 7 to 1\nmove 1 from 7 to 4\nmove 2 from 3 to 5\nmove 1 from 1 to 6\nmove 1 from 8 to 2\nmove 3 from 7 to 5\nmove 6 from 1 to 7\nmove 1 from 8 to 7\nmove 1 from 4 to 5\nmove 4 from 6 to 5\nmove 6 from 7 to 6\nmove 3 from 9 to 1\nmove 1 from 7 to 3\nmove 11 from 5 to 1\nmove 1 from 5 to 2\nmove 9 from 6 to 4\nmove 1 from 7 to 3\nmove 2 from 6 to 1\nmove 1 from 2 to 1\nmove 1 from 2 to 6\nmove 14 from 1 to 5\nmove 1 from 8 to 4\nmove 10 from 1 to 5\nmove 3 from 5 to 1\nmove 8 from 3 to 8\nmove 16 from 5 to 7\nmove 2 from 1 to 9\nmove 3 from 8 to 1\nmove 1 from 2 to 4\nmove 6 from 7 to 4\nmove 3 from 5 to 8\nmove 2 from 3 to 6\nmove 7 from 1 to 7\nmove 14 from 4 to 3\nmove 9 from 7 to 8\nmove 2 from 4 to 1\nmove 9 from 8 to 4\nmove 7 from 8 to 2\nmove 6 from 1 to 8\nmove 1 from 9 to 7\nmove 1 from 1 to 6\nmove 1 from 9 to 6\nmove 1 from 5 to 9\nmove 1 from 5 to 3\nmove 9 from 4 to 9\nmove 3 from 3 to 6\nmove 8 from 6 to 3\nmove 1 from 2 to 9\nmove 8 from 9 to 8\nmove 6 from 2 to 9\nmove 2 from 6 to 1\nmove 7 from 8 to 6\nmove 2 from 9 to 6\nmove 8 from 7 to 8\nmove 1 from 4 to 5\nmove 9 from 3 to 5\nmove 2 from 1 to 4\nmove 1 from 7 to 4\nmove 2 from 4 to 3\nmove 11 from 8 to 1\nmove 1 from 4 to 7\nmove 1 from 7 to 8\nmove 5 from 1 to 3\nmove 4 from 6 to 4\nmove 2 from 4 to 8\nmove 1 from 4 to 8\nmove 7 from 8 to 9\nmove 1 from 8 to 9\nmove 1 from 8 to 5\nmove 18 from 3 to 2\nmove 17 from 2 to 7\nmove 6 from 5 to 4\nmove 1 from 2 to 5\nmove 4 from 4 to 6\nmove 4 from 6 to 9\nmove 15 from 7 to 9\nmove 2 from 1 to 6\nmove 2 from 7 to 9\nmove 28 from 9 to 2\nmove 1 from 6 to 7\nmove 4 from 6 to 9\nmove 3 from 1 to 7\nmove 2 from 6 to 3\nmove 1 from 4 to 7\nmove 8 from 9 to 5\nmove 13 from 5 to 3\nmove 1 from 5 to 7\nmove 3 from 9 to 4\nmove 8 from 3 to 7\nmove 28 from 2 to 5\nmove 1 from 9 to 8\nmove 4 from 3 to 4\nmove 4 from 7 to 5\nmove 2 from 3 to 9\nmove 21 from 5 to 4\nmove 1 from 5 to 7\nmove 1 from 3 to 5\nmove 3 from 5 to 7\nmove 1 from 1 to 3\nmove 3 from 7 to 3\nmove 5 from 7 to 6\nmove 10 from 4 to 8\nmove 6 from 5 to 4\nmove 1 from 9 to 3\nmove 15 from 4 to 5\nmove 10 from 4 to 7\nmove 3 from 3 to 7\nmove 1 from 3 to 4\nmove 1 from 3 to 4\nmove 7 from 5 to 1\nmove 2 from 4 to 7\nmove 1 from 9 to 2\nmove 2 from 6 to 9\nmove 1 from 5 to 3\nmove 1 from 3 to 8\nmove 10 from 7 to 9\nmove 2 from 8 to 1\nmove 9 from 9 to 2\nmove 1 from 4 to 3\nmove 9 from 8 to 7\nmove 1 from 2 to 8\nmove 5 from 5 to 4\nmove 1 from 3 to 2\nmove 5 from 4 to 3\nmove 3 from 5 to 9\nmove 6 from 7 to 3\nmove 1 from 6 to 5\nmove 5 from 9 to 7\nmove 2 from 5 to 6\nmove 3 from 6 to 7\nmove 4 from 1 to 4\nmove 6 from 2 to 7\nmove 17 from 7 to 5\nmove 1 from 6 to 1\nmove 5 from 3 to 6\nmove 10 from 7 to 2\nmove 1 from 8 to 4\nmove 1 from 9 to 8\nmove 3 from 4 to 1\nmove 1 from 7 to 4\nmove 5 from 5 to 9\nmove 2 from 8 to 7\nmove 3 from 3 to 7\nmove 4 from 2 to 3\nmove 3 from 4 to 6\nmove 7 from 5 to 8\nmove 7 from 2 to 8\nmove 4 from 9 to 8\nmove 12 from 8 to 3\nmove 17 from 3 to 2\nmove 1 from 7 to 9\nmove 1 from 3 to 9\nmove 3 from 9 to 1\nmove 2 from 5 to 1\nmove 1 from 3 to 5\nmove 4 from 5 to 8\nmove 6 from 8 to 1\nmove 17 from 2 to 3\nmove 13 from 3 to 2\nmove 1 from 3 to 9\nmove 1 from 8 to 4\nmove 1 from 4 to 8\nmove 1 from 9 to 1\nmove 2 from 7 to 2\nmove 8 from 6 to 2\nmove 2 from 7 to 5\nmove 9 from 1 to 3\nmove 13 from 2 to 9\nmove 6 from 1 to 4\nmove 6 from 4 to 5\nmove 3 from 8 to 1\nmove 2 from 1 to 8\nmove 8 from 5 to 7\nmove 2 from 3 to 1\nmove 9 from 3 to 1\nmove 3 from 8 to 2\nmove 1 from 1 to 9\nmove 1 from 3 to 9\nmove 6 from 7 to 3\nmove 4 from 2 to 7\nmove 14 from 1 to 6\nmove 2 from 3 to 9\nmove 3 from 3 to 7\nmove 6 from 2 to 1\nmove 2 from 1 to 2\nmove 9 from 6 to 3\nmove 11 from 9 to 5\nmove 9 from 7 to 6\nmove 6 from 6 to 2\nmove 1 from 1 to 8\nmove 5 from 9 to 4\nmove 1 from 8 to 5\nmove 9 from 2 to 7\nmove 10 from 5 to 8\u{0000}")
 
   (func $main (export "_start")
     (call $solve)
@@ -37,6 +56,20 @@
     (call $pop_stack (i32.const 2))
     (call $putc)
     (call $pop_stack (i32.const 3))
+    (call $putc)
+
+    (call $pop_stack (i32.const 4))
+    (call $putc)
+    (call $pop_stack (i32.const 5))
+    (call $putc)
+    (call $pop_stack (i32.const 6))
+    (call $putc)
+
+    (call $pop_stack (i32.const 7))
+    (call $putc)
+    (call $pop_stack (i32.const 8))
+    (call $putc)
+    (call $pop_stack (i32.const 9))
     (call $putc)
   )
 
@@ -118,7 +151,7 @@
   (func $pop_stack (param $stack_index i32) (result i32)
     (local $str_i i32)
     ;; 30 is the size of each stack
-    (i32.mul (local.get $stack_index) (i32.const 30))
+    (i32.mul (local.get $stack_index) (i32.const 137))
     (local.set $str_i)
 
     ;; find the first space character (end of stack)
@@ -151,7 +184,7 @@
         (param $stack_index i32) 
     (local $str_i i32)
     ;; 30 is the size of each stack
-    (i32.mul (local.get $stack_index) (i32.const 30))
+    (i32.mul (local.get $stack_index) (i32.const 137))
     (local.set $str_i)
 
     ;; find the first space character (end of stack)
