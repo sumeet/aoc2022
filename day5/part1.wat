@@ -34,7 +34,7 @@
     ;; each stack has a bunch of preallocated spaces
     ;; afterwards so we don't have to dynamically
     ;; allocate memory
-    ;; each stack has length 30
+    ;; each stack has length 137
                    "                                                                                                                                         "
                    "DHNQTWVB                                                                                                                                 "
                    "DWB                                                                                                                                      "                   
