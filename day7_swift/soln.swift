@@ -95,12 +95,31 @@ while (lineI < lines.count) {
     lineI += 1
 }
 
-var total = 0
+// part 1
+var part1 = 0
 let max_size = 100_000
 root.walkChildrenIncludingSelf { dir in
     let dirSize = dir.totalSize()
     if dirSize <= max_size {
-        total += dirSize
+        part1 += dirSize
     }
 }
-print(total)
+
+print("part 1:", terminator: " ")
+print(part1)
+
+// part 2
+let totalDiskSpace = 70_000_000
+let availableSpaceNow = totalDiskSpace - root.totalSize()
+let freeSpaceNeededForUpdate = 30_000_000
+let spaceNeededToFree = freeSpaceNeededForUpdate - availableSpaceNow
+
+var winner = Int.max
+root.walkChildrenIncludingSelf { dir in
+    let dirSize = dir.totalSize() 
+    if dirSize >= spaceNeededToFree {
+        winner = min(winner, dirSize)
+    }
+}
+print("part 2:", terminator: " ")
+print(winner)
