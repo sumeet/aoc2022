@@ -1046,18 +1046,6 @@ $ ls
 7214296 k
 """
 
-class Dir {
-    var name: String
-    var subdirs: [Dir]
-    var fileSizeByName: [String: Int]
-    init(name: String, parent: Dir?) {
-        self.name = name
-        self.parent = parent
-        self.subdirs = []
-        self.fileSizeByName = [:]
-    }
-}
-
 var sizeByFilepath = [String: Int]()
 var setOfDirs = Set<String>()
 var lines = input.split(separator: "\n")
