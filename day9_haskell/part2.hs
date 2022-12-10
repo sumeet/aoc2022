@@ -1,5 +1,4 @@
 import qualified Data.Set as Set
-import Debug.Trace (traceShowId)
 
 parseLine :: String -> (Char, Int)
 parseLine (dir : ' ' : num) = (dir, read num)
@@ -20,10 +19,16 @@ moveOne s@(State knots tailSeen) dir =
       existingTails = tail knots
       nextHead = moveHead existingHead dir
       nextTails = followTails nextHead existingTails
-   in s {poss = nextHead : nextTails, tailSeen = Set.insert (last nextTails) tailSeen}
+   in s
+        { poss = nextHead : nextTails,
+          tailSeen = Set.insert (last nextTails) tailSeen
+        }
 
 followTails :: (Int, Int) -> [(Int, Int)] -> [(Int, Int)]
-followTails head tails = undefined
+followTails head (x : xs) =
+  let nextTail = followTail head x
+   in nextTail : followTails nextTail xs
+followTails _ [] = []
 
 moveHead :: (Int, Int) -> Char -> (Int, Int)
 moveHead (x, y) dir = case dir of
@@ -62,14 +67,23 @@ followTail head@(headX, headY) tail@(tailX, tailY)
   | tail == (headX - 2, headY + 1) = (tailX + 1, tailY - 1)
   | tail == (headX + 2, headY - 1) = (tailX - 1, tailY + 1)
   | tail == (headX - 2, headY - 1) = (tailX + 1, tailY + 1)
+  -- need to handle new diagonal cases for part 2
+  | tail == (headX + 2, headY + 2) = (tailX - 1, tailY - 1)
+  | tail == (headX - 2, headY + 2) = (tailX + 1, tailY - 1)
+  | tail == (headX + 2, headY - 2) = (tailX - 1, tailY + 1)
+  | tail == (headX - 2, headY - 2) = (tailX + 1, tailY + 1)
+  | tail == (headX + 2, headY + 2) = (tailX - 1, tailY - 1)
+  | tail == (headX - 2, headY + 2) = (tailX + 1, tailY - 1)
+  | tail == (headX + 2, headY - 2) = (tailX - 1, tailY + 1)
+  | tail == (headX - 2, headY - 2) = (tailX + 1, tailY + 1)
   | otherwise = error $ "Tail was too far from head: " ++ show tail ++ " " ++ show head
 
 main :: IO ()
 main = do
-  let numTails = 10
-  let knotPoss = replicate numTails (0, 0)
+  let numKnots = 10
+  let knotPoss = replicate numKnots (0, 0)
   let state = State knotPoss Set.empty
-  s <- readFile "./sample.txt"
+  s <- readFile "./input.txt"
   let movess = map parseLine $ lines s
   let endingState = foldl moveN state movess
   putStrLn $ "part 2: " ++ show (length $ tailSeen endingState)
