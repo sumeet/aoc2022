@@ -1,27 +1,36 @@
 use v6;
+use MONKEY;
 
 my $file = open 'sample.txt';
 my @monkeys;
 
 my %current_monkey;
-for $file.lines.map(*.trim) -> $line {
-  if $line.starts-with("Monkey") {
-    %current_monkey = ();
-  } elsif $line.starts-with("Starting items:") {
-    my $items = $line.split(": ")[1];
-    $items = $items.split(", ").map({ +$_ });
-    %current_monkey{'items'} = $items;
-  } elsif $line.starts-with("Operation:") {
-    my $op = $line.split(": ")[1];
-    $op = $op.split(" = ")[1];
-    %current_monkey{'op'} = $op;
-  } elsif $line.starts-with("Test:") {
-  } elsif !$line {
-    @monkeys.append: %current_monkey;
-  } else {
-    die "unexpected line: " ~ $line;
+for $file.lines -> $line {
+  given $line.trim {
+    when /Monkey/ { %current_monkey = :num_inspections(0); }
+    when /"Starting items: "[(\d+)[", "]?]+/ {
+      %current_monkey{'items'} = $0.map({ +$_ });
+    }
+    when /"Operation: new = "(\N+)/ {
+      %current_monkey{'op'} = $0.subst("old", "\$old", :g);
+    }
+    when /"Test: divisible by "(\d+)/ {
+      %current_monkey{'divisible_by'} = +$0;
+    }
+    when /"If true: throw to monkey "(\d+)/ {
+      %current_monkey{'if_true'} = +$0;
+    }
+    when /"If false: throw to monkey "(\d+)/ {
+      %current_monkey{'if_false'} = +$0;
+      @monkeys.push: {%current_monkey}; 
+    }
+    when "" { next; }
+    default { die "unexpected line: " ~ $line }
   }
-
 }
 
-say @monkeys;
+for @monkeys -> %monkey {
+  for @(%monkey{'items'}) -> $item {
+    %monkey{'num_inspections'}++;
+  }
+}
