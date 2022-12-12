@@ -2,8 +2,10 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <string.h>
+#include <stdlib.h>
+#include <sys/queue.h>
 
-#if(1)
+#if(0)
 #define FILENAME "sample.txt"
 #define HEIGHT 5
 #define WIDTH 8
@@ -13,6 +15,12 @@
 #define WIDTH 101
 #endif
 
+typedef struct entry {
+  int pos[2];
+  SLIST_ENTRY(entry) entries;
+} Entry;
+
+typedef SLIST_HEAD(slisthead, entry) Head;
 
 int reachable_nbors(char grid[HEIGHT][WIDTH], int pos[2],
                     int neighbors[4][2]) {
@@ -40,7 +48,10 @@ int reachable_nbors(char grid[HEIGHT][WIDTH], int pos[2],
 int main() {
   FILE* file = fopen(FILENAME, "r");
   char grid[HEIGHT][WIDTH];
-  int min_steps[HEIGHT][WIDTH] = {{INT_MAX}};
+  int min_steps[HEIGHT][WIDTH];
+  for (int i = 0; i < HEIGHT*WIDTH; i++) {
+    ((int *) min_steps)[i] = INT_MAX;
+  }
 
   int starting_pos[2];
   int ending_pos[2];
@@ -56,6 +67,7 @@ int main() {
       continue;
     }
     if (c == 'S') {
+      min_steps[parse_height][parse_width] = 0;
       starting_pos[0] = parse_width;
       starting_pos[1] = parse_height;
       c = 'a';
@@ -65,15 +77,36 @@ int main() {
       c = 'z';
     }
     grid[parse_height][parse_width++] = c;
-    printf("got: %c\n", c);
   }
 
-  while (memcmp(starting_pos, ending_pos, 2) != 0) {
-  }
-  int nbors[4][2];
-  int p[2] = {2, 0};
-  for (int i = 0; i < reachable_nbors(grid, p, nbors); i++) {
-    printf("neighbor: %d %d\n", nbors[i][0], nbors[i][1]);
+  Head root;
+  SLIST_INIT(&root);
+  Entry *starting = malloc(sizeof(Entry));
+  starting->pos[0] = starting_pos[0];
+  starting->pos[1] = starting_pos[1];
+  SLIST_INSERT_HEAD(&root, starting, entries);
+
+  while (!SLIST_EMPTY(&root)) {
+    Entry *cur = SLIST_FIRST(&root);
+    SLIST_REMOVE_HEAD(&root, entries);
+
+    int next_min_steps = min_steps[cur->pos[1]][cur->pos[0]] + 1;
+    int nbors[4][2];
+    for (int i = 0; i < reachable_nbors(grid, cur->pos, nbors); i++) {
+      int min_steps_for_nbor = min_steps[nbors[i][1]][nbors[i][0]];
+
+      if (next_min_steps < min_steps_for_nbor) {
+        min_steps[nbors[i][1]][nbors[i][0]] = next_min_steps;
+
+        Entry *next = malloc(sizeof(Entry));
+        next->pos[0] = nbors[i][0];
+        next->pos[1] = nbors[i][1];
+        SLIST_INSERT_HEAD(&root, next, entries);
+      }
+    }
+
+    free(cur);
   }
 
+  printf("part1: %d\n", min_steps[ending_pos[1]][ending_pos[0]]);
 }
