@@ -26,7 +26,7 @@ for open('input.txt').lines {
   default { die "unexpected line: " ~ $_ }
 }
 
-for 1..20 {
+for ^20 {
   for @monkeys -> %monkey {
     for @(%monkey<items>) {
       %monkey<num_inspections>++;

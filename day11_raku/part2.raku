@@ -29,7 +29,7 @@ for open('input.txt').lines {
 
 my $all_divisble_bys = [*] @monkeys.map: {$_<divisible_by>};
 
-for 1..10_000 {
+for ^10_000 {
   for @monkeys -> %monkey {
     for @(%monkey<items>) {
       %monkey<num_inspections>++;
