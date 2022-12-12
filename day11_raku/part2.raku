@@ -4,8 +4,7 @@ use MONKEY;
 my @monkeys;
 my %current_monkey;
 
-for open('input.txt').lines {
-  when "" { next; }
+for open('input.txt').lines.grep: {$_} {
   when /Monkey/ { %current_monkey = :num_inspections(0); }
   when /"Starting items: "[(\d+)[", "]?]+/ {
     %current_monkey<items> = $0.map({ +$_ }).Array;
@@ -27,7 +26,7 @@ for open('input.txt').lines {
   default { die "unexpected line: " ~ $_ }
 }
 
-my $all_divisble_bys = [*] @monkeys.map: {$_<divisible_by>};
+my $all_divisble_bys = [*] @monkeys.map: *<divisible_by>;
 
 for ^10_000 {
   for @monkeys -> %monkey {
@@ -42,4 +41,4 @@ for ^10_000 {
 }
 
 print "part 2: ";
-say [*] @monkeys.map({ $_<num_inspections> }).sort[*-2..*];
+say [*] @monkeys.map(*<num_inspections>).sort[*-2..*];
