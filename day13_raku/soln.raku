@@ -1,5 +1,3 @@
-use v6;
-
 # in raku, [[1]], is actually [1], similar to how you need
 # a comma in python to make a single-element tuple
 # $[$[1]] would actually give the nested list
