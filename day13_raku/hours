@@ -1,0 +1,26 @@
+use v6;
+
+my @pairs = open('sample.txt')
+  .split("\n\n")
+  .map: *.split("\n").map(&EVAL);
+
+enum Comparison <Wrong Right KeepChecking>;
+
+multi sub cmp($l, $r) {
+  given $l <=> $r {
+    when -1 { Right }
+    when  0 { KeepChecking }
+    when  1 { Wrong }
+  }
+}
+#
+#
+#multi sub cmp(%l, $r) { cmp(l, [$r] }
+
+
+my $sum = 0;
+for 1..* Z @pairs -> ($i, ($left, $right)) {
+  say 'index ', $i;
+  say 'left ', $left;
+  say 'right ', $right;
+}
