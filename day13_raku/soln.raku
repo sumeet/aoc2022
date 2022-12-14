@@ -4,7 +4,7 @@ use v6;
 # a comma in python to make a single-element tuple
 # $[$[1]] would actually give the nested list
 sub parse($l) { $l.subst('[', '$[', :g).EVAL }
-my @pairs = open('sample.txt')
+my @pairs = open('input.txt')
   .split("\n\n")
   .map: *.split("\n").head(2).map(&parse).Array;
 
@@ -31,8 +31,7 @@ for 1..* Z @pairs -> ($i, $pair) {
 say "part1: ", $sum;
 
 my @dividers = [$[$[2]], $[$[6]]];
-my @packets = @pairs.List.flat.Array;
-@packets = @packets.push(|@dividers).sort(&cmp);
+my @packets = @pairs.List.flat.Array.push(|@dividers).sort: &cmp;
 my $product = 1;
 for 1.. *Z @packets -> ($i, $p) {
   $product *= $i if $p (elem) @dividers;
