@@ -22,7 +22,7 @@ say "part1: ", $sum;
 
 my @dividers = [$[$[2]], $[$[6]]];
 my @packets = [|@pairs.List.flat, |@dividers].sort: &cmp;
-my $product = [*] (1..* Z @packets).map: -> ($i, $p) {
-  $i if $p (elem) @dividers;
+my $product = [*] @packets.kv.map: {
+  $^i+1 if $^p (elem) @dividers;
 };
 say "part2: ", $product;
