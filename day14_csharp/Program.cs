@@ -33,17 +33,32 @@ var sandStartPoint = new Coord(500, 0);
 var numSand = 0;
 while (true) {
     var sand = sandStartPoint;
-    Fall: foreach (var next in new Coord[3]{sand.Down(), sand.DownLeft(), sand.DownRight()}) {
+    Fall: foreach (var next in sand) {
         if (!cave.ContainsKey(next)) {
             sand = next;
-            if (sand.Y > highestRockDepth) goto Done;
+            if (sand.Y > highestRockDepth) goto DonePart1;
             goto Fall;
         }
     }
     cave.Add(sand, 'o');
     numSand++;
 }
-Done: Console.WriteLine("Part 1: " + numSand);
+DonePart1: Console.WriteLine("Part 1: " + numSand);
+
+var floorY = highestRockDepth + 2;
+while (!cave.ContainsKey(sandStartPoint)) {
+    var sand = sandStartPoint;
+    Fall: foreach (var next in sand) {
+        if (!next.IsOccupied(cave, floorY)) {
+            sand = next;
+            goto Fall;
+        }
+    }
+    cave.Add(sand, 'o');
+    numSand++;
+}
+Console.WriteLine("Part 2: " + numSand);
+
 
 struct Coord {
     public int X; public int Y;
@@ -52,6 +67,14 @@ struct Coord {
     public Coord Down() { return new Coord(X, Y + 1); }
     public Coord DownLeft() { return new Coord(X - 1, Y + 1); }
     public Coord DownRight() { return new Coord(X + 1, Y + 1); }
+    public IEnumerator<Coord> GetEnumerator() {
+        yield return Down();
+        yield return DownLeft();
+        yield return DownRight();
+    }
+    public bool IsOccupied(Cave cave, int floorHeight) {
+        return Y >= floorHeight || cave.ContainsKey(this);
+    }
     public static void printGrid(Cave cave, int loX, int hiX, int loY, int hiY) {
         for (int y = loY; y <= hiY; y++) {
             for (int x = loX; x <= hiX; x++) {
