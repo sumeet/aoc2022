@@ -12,7 +12,7 @@ while (file.ReadLine() is { } line) {
 
 var highestRockDepth = int.MinValue;
 var cave = new Cave();
-foreach (var rockPath in rockPaths) {
+foreach (var rockPath in rockPaths) 
     for (var i = 0; i < rockPath.Count - 1; i++) {
         var (src, dst) = (rockPath[i], rockPath[i + 1]);
         if (src.X == dst.X)
@@ -27,19 +27,17 @@ foreach (var rockPath in rockPaths) {
             }
         else throw new Exception("Path wasn't straight");
     }
-}
 
 var sandStartPoint = new Coord(500, 0);
 var numSand = 0;
 while (true) {
     var sand = sandStartPoint;
-    Fall: foreach (var next in sand) {
+    Fall: foreach (var next in sand)
         if (!cave.ContainsKey(next)) {
             sand = next;
             if (sand.Y > highestRockDepth) goto DonePart1;
             goto Fall;
         }
-    }
     cave.Add(sand, 'o');
     numSand++;
 }
@@ -48,12 +46,11 @@ DonePart1: Console.WriteLine("Part 1: " + numSand);
 var floorY = highestRockDepth + 2;
 while (!cave.ContainsKey(sandStartPoint)) {
     var sand = sandStartPoint;
-    Fall: foreach (var next in sand) {
+    Fall: foreach (var next in sand)
         if (!next.IsOccupied(cave, floorY)) {
             sand = next;
             goto Fall;
         }
-    }
     cave.Add(sand, 'o');
     numSand++;
 }
