@@ -59,30 +59,15 @@ while (!cave.ContainsKey(sandStartPoint)) {
 }
 Console.WriteLine("Part 2: " + numSand);
 
-
 struct Coord {
     public int X; public int Y;
     public Coord(int x, int y) { X = x; Y = y; }
-    public override String ToString() { return X + "," + Y; }
-    public Coord Down() { return new Coord(X, Y + 1); }
-    public Coord DownLeft() { return new Coord(X - 1, Y + 1); }
-    public Coord DownRight() { return new Coord(X + 1, Y + 1); }
     public IEnumerator<Coord> GetEnumerator() {
-        yield return Down();
-        yield return DownLeft();
-        yield return DownRight();
+        yield return new Coord(X, Y + 1); // down
+        yield return new Coord(X - 1, Y + 1); // down-left
+        yield return new Coord(X + 1, Y + 1); // down-right
     }
     public bool IsOccupied(Cave cave, int floorHeight) {
         return Y >= floorHeight || cave.ContainsKey(this);
     }
-    public static void printGrid(Cave cave, int loX, int hiX, int loY, int hiY) {
-        for (int y = loY; y <= hiY; y++) {
-            for (int x = loX; x <= hiX; x++) {
-                var coord = new Coord(x, y);
-                if (cave.ContainsKey(coord)) Console.Write(cave[coord]);
-                else Console.Write('.');
-            }
-            Console.WriteLine();
-        }
-    } 
 }
