@@ -2,7 +2,7 @@
 using Cave = System.Collections.Generic.Dictionary<Coord, char>;
 
 var file = File.OpenText("input.txt");
-List<Path> rockPaths = new List<Path>();
+var rockPaths = new List<Path>();
 while (file.ReadLine() is { } line) {
     var path = from pathString in line.Split(" -> ")
         let coord = pathString.Split(",")
