@@ -69,5 +69,4 @@ for point in all_points():
         print(tuning_freq(point))
 
 for sensor in sensors:
-    print(len(sensor.all_excluded_points()))
-
+    print(sensor)
