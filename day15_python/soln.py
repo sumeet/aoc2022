@@ -1,4 +1,4 @@
-if True:
+if False:
     FILENAME = 'sample.txt'
     Y_TO_CHECK_PART1 = 10
     MAX_COORD_VAL_PART2 = 20
@@ -10,30 +10,31 @@ else:
 from collections import namedtuple
 Point = namedtuple('Point', 'x y')
 
+def brange(lo, hi):
+    lo = max(0, lo)
+    hi = min(hi, MAX_COORD_VAL_PART2)
+    return range(lo, hi)
+
 class Sensor(namedtuple('Sensor', 'point dist_to_beacon')):
+    @property
+    def x(self):
+        return self.point.x
+    @property
+    def y(self):
+        return self.point.y
     def excludes(self, other_point):
         dist = manhattan(self.point, other_point)
         return dist <= self.dist_to_beacon
 
     @property
-    def min_x_seen(self):
-        return max(0,
-                self.point.x - self.dist_to_beacon)
-
-    @property
-    def max_x_seen(self):
-        return min(MAX_COORD_VAL_PART2,
-                self.point.x + self.dist_to_beacon)
-
-    @property
-    def min_y_seen(self):
-        return max(0,
-                self.point.y - self.dist_to_beacon)
-
-    @property
-    def max_y_seen(self):
-        return min(MAX_COORD_VAL_PART2,
-                self.point.y + self.dist_to_beacon)
+    def points_at_edges(self):
+        d = self.dist_to_beacon + 1
+        for x in brange(self.x - d, self.x + d+1):
+            dy = abs(d - abs(self.x - x))
+            if self.y+dy<=MAX_COORD_VAL_PART2:
+                yield Point(x, self.y+dy)
+            if self.y-dy>=0:
+                yield Point(x, self.y-dy)
 
 
 def manhattan(p1, p2):
@@ -83,23 +84,9 @@ def all_points():
         for y in range(0, MAX_COORD_VAL_PART2):
             yield Point(x, y)
 
-for point in all_points():
-    if not any(sensor.excludes(point) for sensor in sensors):
-        print(point)
-        print(tuning_freq(point))
-
-max_min_x = float('inf')
-min_max_x = float('-inf')
-
-max_min_y = float('inf')
-min_max_y = float('-inf')
 for sensor in sensors:
-    max_min_x = min(max_min_x, sensor.min_x_seen)
-    min_max_x = max(min_max_x, sensor.max_x_seen)
-    max_min_y = min(max_min_y, sensor.min_y_seen)
-    min_max_y = max(min_max_y, sensor.max_y_seen)
+    for point in sensor.points_at_edges:
+        if not any(sensor.excludes(point) for sensor in sensors):
+            print('part 2: ', tuning_freq(point))
+            exit(0)
 
-print(f'max_min_x: {max_min_x}')
-print(f'min_max_x: {min_max_x}')
-print(f'max_min_y: {max_min_y}')
-print(f'min_max_y: {min_max_y}')
