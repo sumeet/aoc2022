@@ -1,6 +1,6 @@
 from pprint import pprint as pp
 from heapq import heapify, heappush, heappop
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from functools import cache, lru_cache
 valves = {}
 Valve = namedtuple('Valve', 'rate dests')
@@ -37,10 +37,10 @@ print('part 1:', part1('AA', 30, ()))
 
 class Qitem(namedtuple('Qitem',
     'rate us_src el_src time_remaining open_valves')):
-    def __lt__(self, other):
-        return ((self.rate / max(self.time_remaining,1))
-                   >
-                (other.rate / max(other.time_remaining,1)))
+    #def __lt__(self, other):
+    #    return ((self.rate / max(self.time_remaining,1))
+    #               >
+    #            (other.rate / max(other.time_remaining,1)))
 
     @property
     def rate_from_open_valves(self):
@@ -48,7 +48,7 @@ class Qitem(namedtuple('Qitem',
 
     @property
     def to_cache(self):
-        return self._replace(open_valves=tuple(self.open_valves))
+        return self._replace(open_valves=tuple(sorted(self.open_valves)))
 
 
         
@@ -56,49 +56,69 @@ class Qitem(namedtuple('Qitem',
 start_qitem = Qitem(rate=0, us_src='AA', el_src='AA', time_remaining=26,
                     open_valves=set())
 q = [start_qitem]
-heapify(q)
 seen = set()
-while q:
-    qitem = heappop(q)
+max_by_open_valves = defaultdict(lambda: float('-inf'))
+
+def next_q_append(qitem):
     if (qitemcache := qitem.to_cache) in seen:
-        continue
+        return
     else:
         seen.add(qitemcache)
+        next_q.append(qitem)
 
-    (cur_rate, us_src, el_src, time_remaining, open_valves) = qitem
+#def next_q_append(qitem):
+#    key = (len(qitem.open_valves), time_remaining)
+#    if max_by_open_valves[key] < qitem.rate:
+#        max_by_open_valves[key] = qitem.rate
+#        next_q.append(qitem)
 
-    if not time_remaining:
-        print('part 2:', cur_rate)
-        break
+next_q = []
+max_rate = 0
 
-    rate = sum(valves[valve].rate for valve in open_valves) + cur_rate
 
-    our_valve = valves[us_src]
-    el_valve = valves[el_src]
-    nexts = []
+while q:
+    next_q.clear()
+    print(f'q length: {len(q)}')
+    for qitem in q:
+        (cur_rate, us_src, el_src, time_remaining, open_valves) = qitem
 
-    # 2. we could open this valve, if rate > 0
-    if our_valve.rate > 0 and us_src not in open_valves:
-        # 1. elph could move to any of the dests
-        for eleph_dest in el_valve.dests:
-            heappush(q, Qitem(rate, us_src, eleph_dest,
-                              time_remaining-1,
-                              set([us_src])|open_valves))
-        # 2. eleph could open valve
-        if el_valve.rate > 0 and el_src not in open_valves and el_src != us_src:
-            heappush(q, Qitem(rate, us_src, el_src,
-                              time_remaining-1,
-                              open_valves|set([el_src,us_src])))
-    else:
-        # 1. we could move to any of the dests, which takes 1 turn
-        for us_dest in our_valve.dests:
+        if not time_remaining:
+            old_max_rate = max_rate
+            max_rate = max(cur_rate, max_rate)
+            if max_rate > old_max_rate:
+                print(f'max rate changed to {max_rate}')
+            continue
+
+        rate = sum(valves[valve].rate for valve in open_valves) + cur_rate
+
+        our_valve = valves[us_src]
+        el_valve = valves[el_src]
+
+        # 2. we could open this valve, if rate > 0
+        if our_valve.rate > 0 and us_src not in open_valves:
             # 1. elph could move to any of the dests
             for eleph_dest in el_valve.dests:
-                heappush(q, Qitem(rate, us_dest, eleph_dest,
-                                  time_remaining-1, open_valves))
-            # 2. eleph could open valve
-            if el_valve.rate > 0 and el_src not in open_valves:
-                heappush(q, Qitem(rate, us_dest, el_src, time_remaining-1,
-                                  open_valves|set([el_src])))
-    
 
+                next_q_append(Qitem(rate, us_src, eleph_dest,
+                                  time_remaining-1,
+                                  set([us_src])|open_valves))
+            # 2. eleph could open valve
+            if el_valve.rate > 0 and el_src not in open_valves and el_src != us_src:
+                next_q_append(Qitem(rate, us_src, el_src,
+                                  time_remaining-1,
+                                  open_valves|set([el_src,us_src])))
+        else:
+            # 1. we could move to any of the dests, which takes 1 turn
+            for us_dest in our_valve.dests:
+                # 1. elph could move to any of the dests
+                for eleph_dest in el_valve.dests:
+                    next_q_append(Qitem(rate, us_dest, eleph_dest,
+                                      time_remaining-1, open_valves))
+                # 2. eleph could open valve
+                if el_valve.rate > 0 and el_src not in open_valves:
+                    next_q_append(Qitem(rate, us_dest, el_src, time_remaining-1,
+                                      open_valves|set([el_src])))
+    q, next_q = next_q, q
+
+
+print('part 2:', max_rate)
