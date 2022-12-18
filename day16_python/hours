@@ -38,13 +38,9 @@ print('part 1:', part1('AA', 30, ()))
 class Qitem(namedtuple('Qitem',
     'rate us_src el_src time_remaining open_valves')):
     def __lt__(self, other):
-        return ((self.rate / max(self.time_remaining,1))
-                   >
-                (other.rate / max(other.time_remaining,1)))
-
-    @property
-    def rate_from_open_valves(self):
-        return sum(valves[valve].rate for valve in self.open_valves)
+        return (self.rate, len(self.open_valves))
+                    >
+                (other.rate, len(other.open_valves))
 
     @property
     def to_cache(self):
