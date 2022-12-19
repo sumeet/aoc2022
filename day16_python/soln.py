@@ -48,6 +48,29 @@ def part1(src, time_remaining, open_valves):
 
 print('part 1:', part1(valve_num('AA'), 30, 0))
 
+@cache
+def part1_mod(src, time_remaining, open_valves, num_players):
+    if not time_remaining:
+        if num_players == 1:
+            return 0
+        return part1_mod(valve_num('AA'), 26, open_valves, num_players-1)
+
+    this_valve = valves[src]
+    next = 0
+    # 1. we could move to any of the dests, which takes 1 turn
+    for dest in this_valve.dests:
+        n = part1_mod(dest, time_remaining-1, open_valves, num_players)
+        next = max(n, next)
+    # 2. we could open this valve, if rate > 0
+    if this_valve.rate > 0 and not hasv(open_valves, src):
+        rate = this_valve.rate * (time_remaining - 1)
+        n = rate + part1_mod(src, time_remaining-1,
+                             addv(open_valves, src), num_players)
+        next = max(n, next)
+    return next
+print('part 1_mod:', part1_mod(valve_num('AA'), 26, 0, 2))
+exit(1)
+
 def customcache(part2_func):
     cache = {}
     def new_part2_func(us_src, el_src, time_remaining, open_valves, us_parent, el_parent):
