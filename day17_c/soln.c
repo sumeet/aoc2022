@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,65 +41,73 @@ static Shape SHAPES[NUM_SHAPES] = {
                           0b1100000}},
 };
 
-#define MAX_N 1000000
-char str[MAX_N + 1];
-int sa[MAX_N], rank[MAX_N], tmp[MAX_N], height[MAX_N];
+  // Function to find the longest repeating subsequence
+  // that appears twice in the given string
+int findLongestRepeatingSubSeq(char *str) {
+  int n = strlen(str);
 
-void get_sa(int n) {
-  for (int i = 0; i <= n; ++i) {
-    rank[i] = str[i];
+  // Create and initialize DP table
+  int **dp = malloc((n + 1) * sizeof(int *));
+  for (int i = 0; i <= n; i++) {
+    dp[i] = malloc((n + 1) * sizeof(int));
   }
-  for (int k = 1; k <= n; k <<= 1) {
-    for (int i = 0; i <= n; ++i) {
-      tmp[i] = rank[i];
-      rank[i] = 0;
+  for (int i = 0; i <= n; i++) {
+    for (int j = 0; j <= n; j++) {
+      dp[i][j] = 0;
     }
-    for (int i = 0; i <= n; ++i) {
-      ++rank[tmp[i]];
-    }
-    for (int i = 1; i <= n; ++i) {
-      rank[i] += rank[i - 1];
-    }
-    for (int i = n; i >= 0; --i) {
-      if (sa[i] - k >= 0) {
-        tmp[--rank[tmp[sa[i] - k]]] = sa[i] - k;
+  }
+
+  // Fill dp table (similar to LCS loops)
+  for (int i = 1; i <= n; i++) {
+    for (int j = 1; j <= n; j++) {
+      // If characters match and indexes are
+      // not same
+      if (str[i - 1] == str[j - 1] && i != j) {
+        dp[i][j] = 1 + dp[i - 1][j - 1];
+      }
+      // If characters do not match
+      else {
+        dp[i][j] = MAX(dp[i][j - 1], dp[i - 1][j]);
       }
     }
-    for (int i = 0; i <= n; ++i) {
-      tmp[i] = rank[i];
-      rank[i] = 0;
-    }
-    for (int i = 0; i <= n; ++i) {
-      ++rank[tmp[i]];
-    }
-    for (int i = 1; i <= n; ++i) {
-      rank[i] += rank[i - 1];
-    }
-    for (int i = n; i >= 0; --i) {
-      sa[--rank[tmp[sa[i]]]] = tmp[sa[i]];
+  }
+
+  // Find the maximum value in the dp table
+  int maxLen = 0;
+  for (int i = 1; i <= n; i++) {
+    for (int j = 1; j <= n; j++) {
+      if (dp[i][j] > maxLen) {
+        maxLen = dp[i][j];
+      }
     }
   }
+
+  int actualMaxLen = maxLen;
+
+  // Trace back through the dp table to find the actual repeating subsequence
+  char *subseq = malloc((maxLen + 1) * sizeof(char));
+  int i = n, j = n;
+  while (i > 0 && j > 0) {
+    if (str[i - 1] == str[j - 1] && i != j) {
+      subseq[--maxLen] = str[i - 1];
+      i--;
+      j--;
+    } else if (dp[i - 1][j] > dp[i][j - 1]) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+
+  // Free dynamically allocated memory
+  for (int i = 0; i <= n; i++) {
+    free(dp[i]);
+  }
+  free(dp);
+  free(subseq);
+
+  return actualMaxLen;
 }
-
-void get_height(int n) {
-  for (int i = 0; i <= n; ++i) {
-    rank[sa[i]] = i;
-  }
-  int h = 0;
-  for (int i = 0; i < n; ++i) {
-    if (rank[i] > 0) {
-      int j = sa[rank[i] - 1];
-      while (str[i + h] == str[j + h]) {
-        ++h;
-      }
-      height[rank[i]] = h;
-      if (h > 0) {
-        --h;
-      }
-    }
-  }
-}
-
 
 void reverse_shapes_y() {
   for (int i = 0; i < NUM_SHAPES; i++) {
@@ -227,7 +236,7 @@ int main() {
   falling_shape = shape_try_rshift(falling_shape, -1, SHAPE_START_OFF);
   int falling_bot = add_new_piece(falling_shape, max_rock_height);
 
-  while (num_rocks < 2023) { // loop for a single turn:
+  while (num_rocks < 1098+83) { // loop for a single turn:
     // step 1: shift the piece < or >
     switch ((c = (char) getc(f))) {
       case '<':
@@ -250,6 +259,17 @@ int main() {
     if (shape_should_come_to_rest(falling_shape, falling_bot)) {
       add_playfield(falling_shape, falling_bot);
       max_rock_height = MAX(max_rock_height, falling_bot + falling_shape.height);
+
+//      if (PLAYFIELD[(2759*2)+134] == 62) {
+//        printf("num_rocks fallen: %d, max_height: %d\n", num_rocks, max_rock_height);
+//        exit(0);
+//      }
+//      if ((PLAYFIELD[134] & 0b1111111) == 0b1111111) {
+//        printf("num_rocks fallen: %d, max_height: %d\n", num_rocks, max_rock_height);
+//        print_s(max_rock_height+5, falling_shape, falling_bot);
+//        exit(1);
+//      }
+
       falling_shape = SHAPES[num_rocks++ % NUM_SHAPES];
       falling_shape = shape_try_rshift(falling_shape, -1, SHAPE_START_OFF);
       falling_bot = add_new_piece(falling_shape, max_rock_height);
@@ -258,17 +278,42 @@ int main() {
     }
   }
 
-  int n = max_rock_height;
-  char *s = PLAYFIELD;
-  get_sa(n);
-  get_height(n);
 
-  int lrs = 0;
-  for (int i = 1; i <= n; ++i) {
-    lrs = MAX(lrs, height[i]);
-  }
-  printf("Longest repeated substring: %d\n", lrs);
+  printf("part 1: %d\n", max_rock_height);
 
-  //  print(10);
-  //printf("part 1: %d\n", max_rock_height);
+//  // find maximum length string that repeats 4 times adjacently
+//  int max_len = 0;
+//  int num_repeats = 50;
+//  for (int len = max_rock_height / num_repeats; len > 100; len--) {
+//    for (int i = 0; i + len*num_repeats < max_rock_height; i++) {
+//      for (int r = 0; r < num_repeats; r++) {
+//        if (strncmp(PLAYFIELD + i + r * len, PLAYFIELD + i + (r + 1) * len, len) != 0) {
+//          goto next_i;
+//        }
+//      }
+//      printf("len: %d, i: %d\n", len, i);
+//      exit(1);
+//    next_i:
+//      continue;
+//    }
+//  }
+//
+//  long long part2_fallen_rocks = 1000000000000LL;
+//
+//  printf("max_len: %d\n", max_len);
+  // answer found through the following steps:
+  // 1. find the repititon using the above code
+  // 2. find the number of rocks that fall before the repetition starts
+  // 3. that's PLAYFIELD[134], though it doesn't fill in until 2 more rocks fall
+  // 4. so 82 rocks fallen makes the base before the repitition starts
+  // 5. base 137 height, 82 rocks
+  // 6. (1_000_000_000_000 - 82) % 1740
+  // 7. 1740 is how many rocks til the pattern repeats, after height 137
+  // 8. formula is like:
+  //  height = (2759*n)+137
+  //  rocks = (1740*n)+82
+  // anyway i got the answer but not going to write the code
+
+  // In [19]: 1585632182037+1878
+  // Out[19]: 1585632183915
 }
