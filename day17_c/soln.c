@@ -1,7 +1,8 @@
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define SHAPE_START_OFF 2
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -38,6 +39,34 @@ static Shape SHAPES[NUM_SHAPES] = {
   {.height = 2, .lines = {0b1100000,
                           0b1100000}},
 };
+
+char *lcs(char *s) {
+  int n = (int)strlen(s);
+  int max_len = n / 2;
+  char *ans = (char *)malloc(max_len * sizeof(char));
+  char *x = (char *)malloc(max_len * sizeof(char));
+  char *y = (char *)malloc(max_len * sizeof(char));
+
+  int maxm = 0;
+  for (int i = 0; i < strlen(s); i++) {
+    for (int j = i; j < strlen(s); j++) {
+      strncpy(x, s + i, j - i + 1);
+      x[j - i + 1] = '\0';
+      for (int k = j + 1; k < strlen(s); k++) {
+        strncpy(y, s + k, j - i + 1);
+        y[j - i + 1] = '\0';
+        if (strcmp(y, x) == 0) {
+          if (strlen(y) > maxm) {
+            maxm = (int) strlen(y);
+            strcpy(ans, y);
+          }
+        }
+      }
+    }
+  }
+
+  return ans;
+}
 
 void reverse_shapes_y() {
   for (int i = 0; i < NUM_SHAPES; i++) {
@@ -93,7 +122,6 @@ int add_new_piece(Shape shape, int max_rock_height) {
 void add_playfield(Shape shape, int falling_bot) {
   for (int y = 0; y < shape.height; y++) {
     char intersection = PLAYFIELD[falling_bot+y] & shape.lines[y];
-    printf("intersection: %b\n", intersection);
     assert(intersection == 0);
     PLAYFIELD[falling_bot + y] |= shape.lines[y];
   }
@@ -166,8 +194,6 @@ int main() {
   Shape falling_shape = SHAPES[num_rocks++ % NUM_SHAPES];\
   falling_shape = shape_try_rshift(falling_shape, -1, SHAPE_START_OFF);
   int falling_bot = add_new_piece(falling_shape, max_rock_height);
-  printf("new piece starts falling, falling_bot: %d\n", falling_bot);
-  DBG;
 
   while (num_rocks < 2023) { // loop for a single turn:
     // step 1: shift the piece < or >
@@ -181,38 +207,27 @@ int main() {
       case '\n':
       case EOF:
         rewind(f);
+        //printf("num_rocks fallen: %d, max_height: %d\n", num_rocks, max_rock_height);
         continue;
       default:
         printf("unexpected char: |%c|\n", c);
         exit(1);
     }
 
-    printf("start of turn: shift %c\n", c);
-    DBG;
-
     // step 2: fall down by 1 square
-    printf("falling down\n");
     if (shape_should_come_to_rest(falling_shape, falling_bot)) {
       add_playfield(falling_shape, falling_bot);
-      //max_rock_height = MAX(max_rock_height, falling_bot + falling_shape.height);
-      if (max_rock_height > falling_bot + falling_shape.height) {
-        printf("max_rock_height: %d, falling_bot: %d, falling_shape.height: %d\n",
-               max_rock_height, falling_bot, falling_shape.height);
-      } else {
-        max_rock_height = falling_bot + falling_shape.height;
-      }
-
+      max_rock_height = MAX(max_rock_height, falling_bot + falling_shape.height);
       falling_shape = SHAPES[num_rocks++ % NUM_SHAPES];
-      printf("adding new rock: now on rock# %d\n", num_rocks);
       falling_shape = shape_try_rshift(falling_shape, -1, SHAPE_START_OFF);
       falling_bot = add_new_piece(falling_shape, max_rock_height);
-      printf("new piece starts falling, falling_bot: %d\n", falling_bot);
     } else {
       falling_bot--;
     }
-    DBG;
-    printf("end of turn\n");
   }
-//  print(10);
-  printf("part 1: %d\n", max_rock_height);
+
+
+  printf("found '%s'\n", lcs(PLAYFIELD));
+  //  print(10);
+  //printf("part 1: %d\n", max_rock_height);
 }
