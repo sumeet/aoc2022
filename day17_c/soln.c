@@ -40,33 +40,65 @@ static Shape SHAPES[NUM_SHAPES] = {
                           0b1100000}},
 };
 
-char *lcs(char *s) {
-  int n = (int)strlen(s);
-  int max_len = n / 2;
-  char *ans = (char *)malloc(max_len * sizeof(char));
-  char *x = (char *)malloc(max_len * sizeof(char));
-  char *y = (char *)malloc(max_len * sizeof(char));
+#define MAX_N 1000000
+char str[MAX_N + 1];
+int sa[MAX_N], rank[MAX_N], tmp[MAX_N], height[MAX_N];
 
-  int maxm = 0;
-  for (int i = 0; i < strlen(s); i++) {
-    for (int j = i; j < strlen(s); j++) {
-      strncpy(x, s + i, j - i + 1);
-      x[j - i + 1] = '\0';
-      for (int k = j + 1; k < strlen(s); k++) {
-        strncpy(y, s + k, j - i + 1);
-        y[j - i + 1] = '\0';
-        if (strcmp(y, x) == 0) {
-          if (strlen(y) > maxm) {
-            maxm = (int) strlen(y);
-            strcpy(ans, y);
-          }
-        }
+void get_sa(int n) {
+  for (int i = 0; i <= n; ++i) {
+    rank[i] = str[i];
+  }
+  for (int k = 1; k <= n; k <<= 1) {
+    for (int i = 0; i <= n; ++i) {
+      tmp[i] = rank[i];
+      rank[i] = 0;
+    }
+    for (int i = 0; i <= n; ++i) {
+      ++rank[tmp[i]];
+    }
+    for (int i = 1; i <= n; ++i) {
+      rank[i] += rank[i - 1];
+    }
+    for (int i = n; i >= 0; --i) {
+      if (sa[i] - k >= 0) {
+        tmp[--rank[tmp[sa[i] - k]]] = sa[i] - k;
+      }
+    }
+    for (int i = 0; i <= n; ++i) {
+      tmp[i] = rank[i];
+      rank[i] = 0;
+    }
+    for (int i = 0; i <= n; ++i) {
+      ++rank[tmp[i]];
+    }
+    for (int i = 1; i <= n; ++i) {
+      rank[i] += rank[i - 1];
+    }
+    for (int i = n; i >= 0; --i) {
+      sa[--rank[tmp[sa[i]]]] = tmp[sa[i]];
+    }
+  }
+}
+
+void get_height(int n) {
+  for (int i = 0; i <= n; ++i) {
+    rank[sa[i]] = i;
+  }
+  int h = 0;
+  for (int i = 0; i < n; ++i) {
+    if (rank[i] > 0) {
+      int j = sa[rank[i] - 1];
+      while (str[i + h] == str[j + h]) {
+        ++h;
+      }
+      height[rank[i]] = h;
+      if (h > 0) {
+        --h;
       }
     }
   }
-
-  return ans;
 }
+
 
 void reverse_shapes_y() {
   for (int i = 0; i < NUM_SHAPES; i++) {
@@ -226,8 +258,17 @@ int main() {
     }
   }
 
+  int n = max_rock_height;
+  char *s = PLAYFIELD;
+  get_sa(n);
+  get_height(n);
 
-  printf("found '%s'\n", lcs(PLAYFIELD));
+  int lrs = 0;
+  for (int i = 1; i <= n; ++i) {
+    lrs = MAX(lrs, height[i]);
+  }
+  printf("Longest repeated substring: %d\n", lrs);
+
   //  print(10);
   //printf("part 1: %d\n", max_rock_height);
 }
