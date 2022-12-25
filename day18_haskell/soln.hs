@@ -1,14 +1,32 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import Data.Array (Array, array, (!), (//))
+import Data.IORef (IORef, modifyIORef, readIORef)
 import Data.List (elemIndex, insert, nub)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (fromJust)
 import qualified Data.Set as Set
 import Debug.Trace (traceShowId)
+import GHC.IORef (newIORef)
+import System.IO.Unsafe (unsafePerformIO)
 
 data Point = Point Int Int Int deriving (Show, Eq, Ord)
+
+minMaxXyzs :: [Point] -> (Point, Point)
+minMaxXyzs points = (Point minX minY minZ, Point maxX maxY maxZ)
+  where
+    minX = minimum $ map (\(Point x _ _) -> x) points
+    minY = minimum $ map (\(Point _ y _) -> y) points
+    minZ = minimum $ map (\(Point _ _ z) -> z) points
+    maxX = maximum $ map (\(Point x _ _) -> x) points
+    maxY = maximum $ map (\(Point _ y _) -> y) points
+    maxZ = maximum $ map (\(Point _ _ z) -> z) points
+
+isOutside :: Point -> [Point] -> Bool
+isOutside (Point x y z) allFaces = x < minX || x > maxX || y < minY || y > maxY || z < minZ || z > maxZ
+  where
+    (Point minX minY minZ, Point maxX maxY maxZ) = minMaxXyzs allFaces
 
 data SparseRepr = SparseRepr
   { xy_z :: Map (Int, Int) [Int],
@@ -52,14 +70,25 @@ splitOn :: Char -> String -> [String]
 splitOn _ [] = []
 splitOn c s = let (x, xs) = break (== c) s in x : splitOn c (drop 1 xs)
 
-searchTrapped :: Point -> Set.Set Point -> Set.Set Point -> Set.Set Point
-searchTrapped pt visited allFaces
-  | pt `Set.member` visited = Set.empty
-  | otherwise =
-    let nexts = faces pt
-     in if Set.fromList nexts `Set.isSubsetOf` Set.union visited allFaces
-          then Set.singleton pt
-          else foldl Set.union Set.empty $ map (\p -> searchTrapped p (Set.insert pt visited) allFaces) nexts
+globalVisited :: IORef (Set.Set Point)
+{-# NOINLINE globalVisited #-}
+globalVisited = unsafePerformIO $ newIORef Set.empty
+
+searchTrapped :: Point -> Set.Set Point -> IO (Set.Set Point)
+searchTrapped pt allFaces = do
+  visited <- readIORef globalVisited
+  if isOutside (pt) (Set.toList allFaces)
+    then pure Set.empty
+    else
+      if (pt) `Set.member` visited
+        then pure Set.empty
+        else do
+          modifyIORef globalVisited (Set.insert pt)
+          let nexts = faces pt
+          pure $
+            if Set.fromList nexts `Set.isSubsetOf` Set.union visited allFaces
+              then Set.singleton pt
+              else foldl Set.union Set.empty $ map (\nextPt -> unsafePerformIO $ searchTrapped nextPt allFaces) nexts
 
 main :: IO ()
 main = do
@@ -72,14 +101,16 @@ main = do
   let cubeSet = Set.fromList cubes
   let allFaces = filter (`Set.notMember` cubeSet) $ concatMap faces cubes
   print $ length allFaces
+  putStrLn $ unlines $ map (\(Point x y z) -> show x ++ "," ++ show y ++ "," ++ show z) allFaces
 
   putStr "part 2: "
-  let visited :: Set.Set Point = Set.fromList []
   let trapped :: Set.Set Point = Set.fromList []
   let allFacesSet = Set.fromList allFaces
-  print $ foldl Set.union Set.empty $ map (\p -> searchTrapped p visited allFacesSet) (Set.toList allFacesSet)
-  --let startingPoint = minimum allFaces
+  let part2 = foldl Set.union Set.empty $ map (\nextPt -> unsafePerformIO $ searchTrapped nextPt allFacesSet) allFaces
+  putStrLn $ unlines $ map (\(Point x y z) -> show x ++ "," ++ show y ++ "," ++ show z) (Set.toList part2)
   pure ()
+
+--pure ()
 
 --   let sparse = foldl addCube initSparse allFaces
 --   let touchingOutside = Set.fromList $ filter (faceTouchingOutside sparse) allFaces
