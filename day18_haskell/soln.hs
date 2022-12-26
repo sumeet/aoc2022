@@ -72,6 +72,10 @@ searchStructure start minMax structure = do
               nborResults <- mapM (\p -> searchStructure p minMax structure) nbors
               pure $ foldl Set.union Set.empty nborResults
 
+assert :: Bool -> a -> a
+assert False x = error "assertion failed!"
+assert _ x = x
+
 main :: IO ()
 main = do
   s <- readFile "sample.txt"
@@ -83,7 +87,16 @@ main = do
   let facesInSurfaceArea = Map.keys $ Map.filter (== 1) facesCounts
   print $ length facesInSurfaceArea
   let allPointsInSurfaceArea = foldl Set.union Set.empty facesInSurfaceArea
+  --
   let minMax = minMaxXyzs $ Set.toList allPointsInSurfaceArea
-  print minMax
-  let (pointsOfStructure, _) = runState (searchStructure (fst minMax) minMax allPointsInSurfaceArea) Set.empty
-  print $ length pointsOfStructure
+  --print minMax
+  let (pointsReachableFromOutside, _) = runState (searchStructure (fst minMax) minMax allPointsInSurfaceArea) Set.empty
+  --let (cubesReachableFromOutside, _) = runState (searchStructure (fst minMax) minMax (Set.fromList cubes)) Set.empty
+  --print $ length pointsReachableFromOutside
+  --print $ pointsReachableFromOutside `Set.isSubsetOf` allPointsInSurfaceArea
+  let pointsOnInside = allPointsInSurfaceArea `Set.difference` pointsReachableFromOutside
+  --putStrLn $ unlines $ [show x ++ "," ++ show y ++ "," ++ show z | (Point x y z) <- Set.toList origPoints]
+  print $ length pointsOnInside
+
+--   let diff = length cubes - length pointsReachableFromOutside
+--   print $ length facesInSurfaceArea - (6 * diff)
