@@ -5,7 +5,7 @@ import Data.IORef (IORef, modifyIORef, readIORef)
 import Data.List (elemIndex, insert, nub)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 import qualified Data.Set as Set
 import Debug.Trace (traceShowId)
 import GHC.IORef (newIORef)
@@ -74,21 +74,28 @@ globalVisited :: IORef (Set.Set Point)
 {-# NOINLINE globalVisited #-}
 globalVisited = unsafePerformIO $ newIORef Set.empty
 
-searchTrapped :: Point -> Set.Set Point -> IO (Set.Set Point)
+searchTrapped :: Point -> Set.Set Point -> IO (Maybe (Set.Set Point))
 searchTrapped pt allFaces = do
   visited <- readIORef globalVisited
-  if isOutside (pt) (Set.toList allFaces)
-    then pure Set.empty
+  if isOutside pt (Set.toList allFaces)
+    then pure Nothing
     else
-      if (pt) `Set.member` visited
-        then pure Set.empty
+      if pt `Set.member` visited
+        then pure Nothing -- actually meant to try pure Just
         else do
           modifyIORef globalVisited (Set.insert pt)
           let nexts = faces pt
           pure $
             if Set.fromList nexts `Set.isSubsetOf` Set.union visited allFaces
-              then Set.singleton pt
-              else foldl Set.union Set.empty $ map (\nextPt -> unsafePerformIO $ searchTrapped nextPt allFaces) nexts
+              then Just $ Set.singleton pt
+              else
+                Just $
+                  foldl Set.union Set.empty $
+                    map
+                      ( \nextPt ->
+                          (fromMaybe Set.empty (unsafePerformIO $ searchTrapped nextPt allFaces))
+                      )
+                      nexts
 
 main :: IO ()
 main = do
@@ -106,8 +113,14 @@ main = do
   putStr "part 2: "
   let trapped :: Set.Set Point = Set.fromList []
   let allFacesSet = Set.fromList allFaces
-  let part2 = foldl Set.union Set.empty $ map (\nextPt -> unsafePerformIO $ searchTrapped nextPt allFacesSet) allFaces
-  putStrLn $ unlines $ map (\(Point x y z) -> show x ++ "," ++ show y ++ "," ++ show z) (Set.toList part2)
+  let part2 =
+        foldl Set.union Set.empty $
+          map
+            ( \face ->
+                fromMaybe Set.empty (unsafePerformIO $ searchTrapped face allFacesSet)
+            )
+            allFaces
+  print $ length $ part2
   pure ()
 
 --pure ()
