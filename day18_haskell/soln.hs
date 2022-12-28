@@ -65,5 +65,5 @@ main = do
   let (minXyzs, maxXyzs) = minMaxXyzs (Set.toList cubes)
   let allPointsSet = Set.fromList $ allPoints minXyzs maxXyzs
   let (foundPointsSet, _) = runState (searchStructure minXyzs (minXyzs, maxXyzs) cubes) Set.empty
-  let innerAirCubes = (allPointsSet `Set.difference` cubes) `Set.difference` foundPointsSet
+  let innerAirCubes = allPointsSet `Set.difference` cubes `Set.difference` foundPointsSet
   print $ part1 - calcSurfaceArea innerAirCubes
