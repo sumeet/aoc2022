@@ -13,6 +13,10 @@ type Face = Set.Set Point
 
 type Counts = Map.Map Face Int
 
+allPoints :: Point -> Point -> [Point]
+allPoints (Point minX minY minZ) (Point maxX maxY maxZ) =
+  [Point x y z | x <- [minX .. maxX], y <- [minY .. maxY], z <- [minZ .. maxZ]]
+
 minMaxXyzs :: [Point] -> (Point, Point)
 minMaxXyzs points = (Point minX minY minZ, Point maxX maxY maxZ)
   where
@@ -41,10 +45,6 @@ faces (Point x y z) = [topFace, bottomFace, frontFace, backFace, leftFace, right
     leftFace = Set.fromList [Point x y z, Point x y (z + 1), Point x (y + 1) (z + 1), Point x (y + 1) z]
     rightFace = Set.fromList [Point (x + 1) y z, Point (x + 1) y (z + 1), Point (x + 1) (y + 1) (z + 1), Point (x + 1) (y + 1) z]
 
-choices :: [a] -> [(a, [a])]
-choices (x : xs) = (x, xs) : [(y, x : ys) | (y, ys) <- choices xs]
-choices [] = []
-
 neighbors :: Point -> [Point]
 neighbors (Point x y z) =
   [ Point (x + 1) y z,
@@ -62,37 +62,34 @@ searchStructure start minMax structure = do
     then pure Set.empty
     else do
       put $ start `Set.insert` visited
-      if start `Set.member` structure
-        then pure $ Set.singleton start
-        else
-          if start `exceeds` minMax
-            then pure Set.empty
-            else do
+      if (start `Set.member` structure) || (start `exceeds` minMax)
+        then pure Set.empty
+        else -- we have outer air
+
+          ( do
               let nbors = neighbors start
               nborResults <- mapM (\p -> searchStructure p minMax structure) nbors
-              pure $ foldl Set.union Set.empty nborResults
+              pure $ foldl Set.union (Set.singleton start) nborResults
+          )
 
-assert :: Bool -> a -> a
-assert False x = error "assertion failed!"
-assert _ x = x
+calcSurfaceArea :: [Point] -> Int
+calcSurfaceArea points = length $ Map.filter (== 1) facesCounts
+  where
+    allFaces = concatMap faces points
+    facesCounts = foldl (\acc face -> Map.insertWith (+) face 1 acc) Map.empty allFaces
 
 main :: IO ()
 main = do
-  s <- readFile "sample.txt"
+  s <- readFile "input.txt"
   let nums :: [[Int]] = map (map read . splitOn ',') $ lines s
   let cubes = map (\[x, y, z] -> Point x y z) nums
-  let allFaces = concatMap faces cubes
-  let facesCounts = foldl (\acc face -> Map.insertWith (+) face 1 acc) Map.empty allFaces
   putStr "part 1: "
-  let facesInSurfaceArea = Map.keys $ Map.filter (== 1) facesCounts
-  print $ length facesInSurfaceArea
-  let allPointsInSurfaceArea = foldl Set.union Set.empty facesInSurfaceArea
-  let minMax = minMaxXyzs $ Set.toList allPointsInSurfaceArea
-  let (cubesReachableFromOutside, _) = runState (searchStructure (fst minMax) minMax allPointsInSurfaceArea) Set.empty
-  --let pointsOnInside = allPointsInSurfaceArea `Set.difference` cubesReachableFromOutside
-  -- all points from min to max
-  -- `subtract`
-  -- points of the cube
-  -- `subtract`
-  -- points hit by DFS, which includes air on the outside AND the inside
-  print $ length pointsOnInside
+  let part1 = calcSurfaceArea cubes
+  print part1
+  let (minXyzs, maxXyzs) = minMaxXyzs cubes
+  let allPointsSet = Set.fromList $ allPoints minXyzs maxXyzs
+  let cubesSet = Set.fromList cubes
+  let (foundPointsSet, _) = runState (searchStructure minXyzs (minXyzs, maxXyzs) cubesSet) Set.empty
+  let innerAirCubes = (allPointsSet `Set.difference` cubesSet) `Set.difference` foundPointsSet
+  putStr "part 2: "
+  print $ part1 - calcSurfaceArea (Set.toList innerAirCubes)
