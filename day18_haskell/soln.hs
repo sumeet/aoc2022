@@ -90,4 +90,9 @@ main = do
   let minMax = minMaxXyzs $ Set.toList allPointsInSurfaceArea
   let (cubesReachableFromOutside, _) = runState (searchStructure (fst minMax) minMax allPointsInSurfaceArea) Set.empty
   --let pointsOnInside = allPointsInSurfaceArea `Set.difference` cubesReachableFromOutside
+  -- all points from min to max
+  -- `subtract`
+  -- points of the cube
+  -- `subtract`
+  -- points hit by DFS, which includes air on the outside AND the inside
   print $ length pointsOnInside
