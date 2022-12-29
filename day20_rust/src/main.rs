@@ -33,24 +33,22 @@ fn mix_file(mut file: VecDeque<isize>) -> VecDeque<isize> {
             }
         } else if val < 0 {
             for _ in 0..val.abs() {
-                if index == 0 {
-                    let popped = file.pop_front().unwrap();
-                    file.push_back(popped);
-                    indexes.swap(file[len - 1], file[0]);
-                    for index in indexes.vec.iter_mut() {
-                        if index.is_some() && index != &Some(len - 1) && index != &Some(0) {
-                            *index.as_mut().unwrap() -= 1;
-                        }
-                    }
-                    index = len - 1;
-                }
                 let prev_index = index - 1;
                 file.swap(index, prev_index);
                 indexes.swap(file[index], file[prev_index]);
                 index = prev_index;
+                if index == 0 {
+                    let popped = file.pop_front().unwrap();
+                    file.push_back(popped);
+                    for (i, val) in file.iter().enumerate() {
+                        indexes.set(*val, i);
+                    }
+                    index = len - 1;
+                }
             }
         }
         dbg!(&file);
+        indexes.print();
     }
     file
 }
@@ -88,10 +86,14 @@ impl IndexLookup {
         };
 
         for (i, v) in file.iter().enumerate() {
-            lookup.vec[(*v - min) as usize] = Some(i);
+            lookup.set(*v, i);
         }
 
         lookup
+    }
+
+    fn set(&mut self, val: isize, index: usize) {
+        self.vec[(val - self.min) as usize] = Some(index);
     }
 
     fn get(&self, val: isize) -> usize {
@@ -100,6 +102,15 @@ impl IndexLookup {
 
     fn swap(&mut self, val1: isize, val2: isize) {
         self.vec.swap((val1 - self.min) as usize, (val2 - self.min) as usize);
+    }
+
+    fn print(&self) {
+        for (v, i) in self.vec.iter().enumerate() {
+            if let Some(i) = i {
+                print!("{}: {:?}, ", (v as isize + self.min), i);
+            }
+        }
+        println!();
     }
 }
 
