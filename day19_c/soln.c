@@ -1,10 +1,10 @@
 #include <ctype.h>
+#include <memory.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/param.h>
 #include <sys/queue.h>
 
 #define TIME_REMAINING 24
@@ -123,7 +123,7 @@ BuildOptions building_phase(const Blueprint blueprint,
     next_state.robot_army.num_obs_robots++;
     options.buildable_robots[options.len++] = next_state;
     // not sure if this return is correct
-    //return options;
+    // return options;
   }
   if (mats.ore >= blueprint.clay_robot_ore_cost) {
     Playstate next_state = playstate;
@@ -146,15 +146,13 @@ BuildOptions building_phase(const Blueprint blueprint,
 
 uint32_t max_quality_level(const Blueprint blueprint,
                            const Playstate initial_state) {
-  uint32_t max_num_geodes = 0;
+  // uint32_t max_num_geodes = 0;
+  uint32_t max_num_geodess[TIME_REMAINING] = {0};
+  memset(max_num_geodess, 0, sizeof(max_num_geodess));
   Q q = q_init();
   q_push(&q, initial_state);
   while (!q_is_empty(&q)) {
     Playstate this_state = q_pop(&q);
-    if (this_state.time_remaining == 0) {
-      max_num_geodes = MAX(max_num_geodes, this_state.mats.geode);
-      continue;
-    }
     Materials collected_mats = collection_phase(this_state);
     BuildOptions options = building_phase(blueprint, this_state);
     for (uint8_t i = 0; i < options.len; i++) {
@@ -164,10 +162,14 @@ uint32_t max_quality_level(const Blueprint blueprint,
       option.mats.obs += collected_mats.obs;
       option.mats.geode += collected_mats.geode;
       option.time_remaining--;
-      q_push(&q, option);
+      if (option.mats.geode >= max_num_geodess[option.time_remaining]) {
+        max_num_geodess[option.time_remaining] = option.mats.geode;
+        if (option.time_remaining > 0)
+          q_push(&q, option);
+      }
     }
   }
-  return max_num_geodes * blueprint.id;
+  return max_num_geodess[0] * blueprint.id;
 }
 
 void *max_quality_thread(void *blueprint) {
