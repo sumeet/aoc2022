@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/queue.h>
 
 #define TIME_REMAINING 32
 
@@ -46,33 +45,55 @@ Playstate init_playstate() {
   return playstate;
 };
 
-typedef struct QItem {
-  Playstate playstate;
-  SLIST_ENTRY(QItem) entries;
-} QItem;
+#define MAX_Q_SIZE 90000000 // 100k
 
-typedef SLIST_HEAD(slisthead, QItem) Q;
+typedef struct Q {
+  Playstate items[MAX_Q_SIZE];
+  uint32_t front;
+  uint32_t rear;
+} Q;
 
-Q q_init() {
-  Q q;
-  SLIST_INIT(&q);
-  return q;
-}
-
-bool q_is_empty(Q *q) { return SLIST_EMPTY(q); }
-
-Playstate q_pop(Q *q) {
-  QItem *entry = SLIST_FIRST(q);
-  Playstate playstate = entry->playstate;
-  SLIST_REMOVE_HEAD(q, entries);
-  free(entry);
-  return playstate;
+void print_playstate(Playstate ps) {
+  printf("Playstate: time_remaining: %d", ps.time_remaining);
 }
 
 void q_push(Q *q, Playstate playstate) {
-  QItem *entry = malloc(sizeof(QItem));
-  entry->playstate = playstate;
-  SLIST_INSERT_HEAD(q, entry, entries);
+  if (q->rear == MAX_Q_SIZE - 1) {
+    printf("Queue is Full!!\n");
+    printf("tried to enqueue playstate:");
+    print_playstate(playstate);
+    exit(1);
+  } else {
+    if (q->front == -1)
+      q->front = 0;
+    q->rear++;
+    q->items[q->rear] = playstate;
+  }
+}
+
+Q *q_init(Playstate initial_playstate) {
+  Q *q = malloc(sizeof(Q));
+  q->front = -1;
+  q->rear = -1;
+  q_push(q, initial_playstate);
+  return q;
+}
+
+bool q_is_empty(Q *q) { return q->rear == -1; }
+
+Playstate q_pop(Q *q) {
+  Playstate item;
+  if (q_is_empty(q)) {
+    printf("Queue is empty");
+    exit(1);
+  } else {
+    item = q->items[q->front];
+    q->front++;
+    if (q->front > q->rear) {
+      q->front = q->rear = -1;
+    }
+  }
+  return item;
 }
 
 int read_next_int(FILE *f) {
@@ -139,10 +160,9 @@ uint32_t max_quality_level(const Blueprint blueprint,
                            const Playstate initial_state) {
   uint32_t max_num_geodess[TIME_REMAINING] = {0};
   memset(max_num_geodess, 0, sizeof(max_num_geodess));
-  Q q = q_init();
-  q_push(&q, initial_state);
-  while (!q_is_empty(&q)) {
-    Playstate this_state = q_pop(&q);
+  Q *q = q_init(initial_state);
+  while (!q_is_empty(q)) {
+    Playstate this_state = q_pop(q);
     if (this_state.mats.geode < max_num_geodess[this_state.time_remaining]) {
       continue;
     }
@@ -159,7 +179,7 @@ uint32_t max_quality_level(const Blueprint blueprint,
       if (option.mats.geode >= max_num_geodess[option.time_remaining]) {
         max_num_geodess[option.time_remaining] = option.mats.geode;
         if (option.time_remaining > 0)
-          q_push(&q, option);
+          q_push(q, option);
       }
     }
   }
@@ -174,7 +194,7 @@ void *max_quality_thread(void *blueprint) {
 }
 
 int main() {
-  FILE *f = fopen("input.txt", "r");
+  FILE *f = fopen("sample.txt", "r");
   if (f == NULL) {
     printf("Error opening file");
     return 1;
