@@ -45,7 +45,7 @@ Playstate init_playstate() {
   return playstate;
 };
 
-#define MAX_Q_SIZE 9000000 // 100k
+#define MAX_Q_SIZE 900000000 // 100k
 
 typedef struct Q {
   Playstate items[MAX_Q_SIZE];
@@ -53,15 +53,22 @@ typedef struct Q {
   uint32_t rear;
 } Q;
 
+void print_playstate(Playstate ps) {
+  printf("Playstate: time_remaining: %d", ps.time_remaining);
+}
+
 void q_push(Q *q, Playstate playstate) {
   if (q->rear == MAX_Q_SIZE - 1) {
-    printf("Error: Queue is full.\n");
-    return;
+    printf("Queue is Full!!\n");
+    printf("tried to enqueue playstate:");
+    print_playstate(playstate);
+    exit(1);
+  } else {
+    if (q->front == -1)
+      q->front = 0;
+    q->rear++;
+    q->items[q->rear] = playstate;
   }
-  if (q->front == -1) {
-    q->front = 0;
-  }
-  q->items[++q->rear] = playstate;
 }
 
 Q *q_init(Playstate initial_playstate) {
@@ -72,19 +79,19 @@ Q *q_init(Playstate initial_playstate) {
   return q;
 }
 
-bool q_is_empty(Q *q) { return q->front == -1; }
+bool q_is_empty(Q *q) { return q->rear == -1; }
 
 Playstate q_pop(Q *q) {
+  Playstate item;
   if (q_is_empty(q)) {
-    printf("Error: Queue is empty.\n");
+    printf("Queue is empty");
     exit(1);
-  }
-  Playstate item = q->items[q->front];
-  if (q->front == q->rear) {
-    q->front = -1;
-    q->rear = -1;
   } else {
+    item = q->items[q->front];
     q->front++;
+    if (q->front > q->rear) {
+      q->front = q->rear = -1;
+    }
   }
   return item;
 }
@@ -156,10 +163,10 @@ uint32_t max_quality_level(const Blueprint blueprint,
   Q *q = q_init(initial_state);
   while (!q_is_empty(q)) {
     Playstate this_state = q_pop(q);
-    //    if (this_state.mats.geode <
-    //    max_num_geodess[this_state.time_remaining]) {
-    //      continue;
-    //    }
+    //        if (this_state.mats.geode <
+    //        max_num_geodess[this_state.time_remaining]) {
+    //          continue;
+    //        }
 
     RobotArmy current_army = this_state.robot_army;
     BuildOptions options = building_phase(blueprint, this_state);
@@ -170,12 +177,13 @@ uint32_t max_quality_level(const Blueprint blueprint,
       option.mats.obs += current_army.num_obs_robots;
       option.mats.geode += current_army.num_geode_robots;
       option.time_remaining--;
-      //      if (option.mats.geode >= max_num_geodess[option.time_remaining]) {
-      //        max_num_geodess[option.time_remaining] = option.mats.geode;
-      if (option.time_remaining > 0)
-        q_push(q, option);
+      if (option.mats.geode + option.robot_army.num_geode_robots >=
+          max_num_geodess[option.time_remaining]) {
+        max_num_geodess[option.time_remaining] = option.mats.geode;
+        if (option.time_remaining > 0)
+          q_push(q, option);
+      }
     }
-    //    }
   }
   return max_num_geodess[0];
 }
