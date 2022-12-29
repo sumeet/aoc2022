@@ -5,7 +5,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/queue.h>
 
+#define STB_DS_IMPLEMENTATION
+#include "stb_ds.h"
 #define TIME_REMAINING 32
 
 typedef struct Blueprint {
@@ -45,55 +48,33 @@ Playstate init_playstate() {
   return playstate;
 };
 
-#define MAX_Q_SIZE 90000000 // 100k
+typedef struct QItem {
+  Playstate playstate;
+  SLIST_ENTRY(QItem) entries;
+} QItem;
 
-typedef struct Q {
-  Playstate items[MAX_Q_SIZE];
-  uint32_t front;
-  uint32_t rear;
-} Q;
+typedef SLIST_HEAD(slisthead, QItem) Q;
 
-void print_playstate(Playstate ps) {
-  printf("Playstate: time_remaining: %d", ps.time_remaining);
-}
-
-void q_push(Q *q, Playstate playstate) {
-  if (q->rear == MAX_Q_SIZE - 1) {
-    printf("Queue is Full!!\n");
-    printf("tried to enqueue playstate:");
-    print_playstate(playstate);
-    exit(1);
-  } else {
-    if (q->front == -1)
-      q->front = 0;
-    q->rear++;
-    q->items[q->rear] = playstate;
-  }
-}
-
-Q *q_init(Playstate initial_playstate) {
-  Q *q = malloc(sizeof(Q));
-  q->front = -1;
-  q->rear = -1;
-  q_push(q, initial_playstate);
+Q q_init() {
+  Q q;
+  SLIST_INIT(&q);
   return q;
 }
 
-bool q_is_empty(Q *q) { return q->rear == -1; }
+bool q_is_empty(Q *q) { return SLIST_EMPTY(q); }
 
 Playstate q_pop(Q *q) {
-  Playstate item;
-  if (q_is_empty(q)) {
-    printf("Queue is empty");
-    exit(1);
-  } else {
-    item = q->items[q->front];
-    q->front++;
-    if (q->front > q->rear) {
-      q->front = q->rear = -1;
-    }
-  }
-  return item;
+  QItem *entry = SLIST_FIRST(q);
+  Playstate playstate = entry->playstate;
+  SLIST_REMOVE_HEAD(q, entries);
+  free(entry);
+  return playstate;
+}
+
+void q_push(Q *q, Playstate playstate) {
+  QItem *entry = malloc(sizeof(QItem));
+  entry->playstate = playstate;
+  SLIST_INSERT_HEAD(q, entry, entries);
 }
 
 int read_next_int(FILE *f) {
@@ -134,6 +115,14 @@ BuildOptions building_phase(const Blueprint blueprint,
     next_state.mats.ore -= blueprint.obs_robot_ore_cost;
     next_state.robot_army.num_obs_robots++;
     options.buildable_robots[options.len++] = next_state;
+
+    // if you could build a geode robot on the next turn, and couldn't do so
+    // previously, then this is the correct move. so, return early
+    if (next_state.mats.obs + 1 >= blueprint.geode_robot_obs_cost &&
+        next_state.mats.ore + 1 >= blueprint.geode_robot_ore_cost) {
+      return options;
+    }
+
     // not sure if this return is correct
     // return options;
   }
@@ -160,11 +149,25 @@ uint32_t max_quality_level(const Blueprint blueprint,
                            const Playstate initial_state) {
   uint32_t max_num_geodess[TIME_REMAINING] = {0};
   memset(max_num_geodess, 0, sizeof(max_num_geodess));
-  Q *q = q_init(initial_state);
-  while (!q_is_empty(q)) {
-    Playstate this_state = q_pop(q);
+  Q q = q_init();
+
+  struct {
+    Playstate key;
+    bool value;
+  } *hash = NULL;
+
+  q_push(&q, initial_state);
+  while (!q_is_empty(&q)) {
+    Playstate this_state = q_pop(&q);
     if (this_state.mats.geode < max_num_geodess[this_state.time_remaining]) {
       continue;
+    }
+
+    if (hmget(hash, this_state)) {
+//      printf("bailing because we've seen this state before\n");
+      continue;
+    } else {
+      hmput(hash, this_state, true);
     }
 
     RobotArmy current_army = this_state.robot_army;
@@ -179,7 +182,7 @@ uint32_t max_quality_level(const Blueprint blueprint,
       if (option.mats.geode >= max_num_geodess[option.time_remaining]) {
         max_num_geodess[option.time_remaining] = option.mats.geode;
         if (option.time_remaining > 0)
-          q_push(q, option);
+          q_push(&q, option);
       }
     }
   }
@@ -194,7 +197,7 @@ void *max_quality_thread(void *blueprint) {
 }
 
 int main() {
-  FILE *f = fopen("sample.txt", "r");
+  FILE *f = fopen("input.txt", "r");
   if (f == NULL) {
     printf("Error opening file");
     return 1;
