@@ -1,132 +1,88 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 fn main() {
-    let orig_file: VecDeque<isize> = SAMPLE
+    let orig_file = SAMPLE
         .trim()
         .split("\n")
         .map(|s| s.parse().unwrap())
-        .collect();
-    let len = orig_file.len();
-    let (mixed, indexes) = mix_file(orig_file);
-    dbg!(&mixed);
-    let zero_pos = indexes.get(0);
-    dbg!(zero_pos);
-    let res: isize = [1000, 2000, 3000]
+        .collect::<Vec<isize>>();
+    let idx_by_value = orig_file
         .iter()
-        .map(|i| mixed.get((zero_pos + i) % len).unwrap())
-        .sum();
-    dbg!(res);
+        .enumerate()
+        .map(|(i, v)| (*v, i))
+        .collect::<HashMap<_, _>>();
+    let mut nodes = Node::from_vals(&orig_file);
+    print(&nodes);
+    move_node(&idx_by_value, &mut nodes, 1);
+    print(&nodes);
 }
 
-// supposed to be doing:
-// 1, -3, 2, 3, -2, 0, 4 // start
-// -3, 1, 2, 3, -2, 0, 4 // 1 move
-// 1, 2, 3, -2, 0, 4, -3 // 2 moves
-// 1, 2, 3, -2, 0, -3, 4 // 3 moves
-
-fn mix_file(mut file: VecDeque<isize>) -> (VecDeque<isize>, IndexLookup) {
-    let orig_file = file.clone();
-    let mut indexes = IndexLookup::from(&file);
-    for val in orig_file {
-        let mut index = indexes.get(val);
-
-        // depending on if val is positive or negative, keep swapping that
-        // index in file to the right or left, `val` number of times
-        let len = file.len();
-        if val > 0 {
-            for _ in 0..val {
-                let next_index = (index + 1) % len;
-                file.swap(index, next_index);
-                indexes.swap(file[index], file[next_index]);
-                index = next_index;
-                if index == file.len() - 1 {
-                    let popped = file.pop_back().unwrap();
-                    file.push_front(popped);
-                    for (i, val) in file.iter().enumerate() {
-                        indexes.set(*val, i);
-                    }
-                    index = 0;
-                }
-            }
-        } else if val < 0 {
-            for _ in 0..val.abs() {
-                let prev_index = index - 1;
-                file.swap(index, prev_index);
-                indexes.swap(file[index], file[prev_index]);
-                index = prev_index;
-                if index == 0 {
-                    let popped = file.pop_front().unwrap();
-                    file.push_back(popped);
-                    for (i, val) in file.iter().enumerate() {
-                        indexes.set(*val, i);
-                    }
-                    index = len - 1;
-                }
-            }
-        }
-        // indexes.print();
+fn print(nodes: &[Node]) {
+    let mut idx = 0;
+    print!("[");
+    for _ in 0..nodes.len() {
+        print!("{}, ", nodes[idx].val);
+        idx = nodes[idx].next_idx;
     }
-    (file, indexes)
+    println!("]");
 }
 
-fn minmax(v: &VecDeque<isize>) -> (isize, isize) {
-    let mut min = v[0];
-    let mut max = v[0];
-    for i in 1..v.len() {
-        if v[i] < min {
-            min = v[i];
+fn move_node(idx_by_value: &HashMap<isize, usize>, nodes: &mut [Node], value: isize) {
+    let orig_idx = idx_by_value[&value];
+
+    // first cut out the node
+    let node = nodes[orig_idx];
+    nodes[node.prev_idx].next_idx = node.next_idx;
+    nodes[node.next_idx].prev_idx = node.prev_idx;
+
+    if node.val > 0 {
+        let mut idx = orig_idx;
+        for _ in 0..node.val {
+            println!("how many times");
+            idx = nodes[idx].next_idx;
         }
-        if v[i] > max {
-            max = v[i];
-        }
+        let new_prev_index = idx;
+        let new_next_index = nodes[idx].next_idx;
+        nodes[new_prev_index].next_idx = orig_idx;
+        nodes[new_next_index].prev_idx = orig_idx;
+        nodes[orig_idx].prev_idx = new_prev_index;
+        nodes[orig_idx].next_idx = new_next_index;
+    } else if node.val < 0 {
     }
-    (min, max)
 }
 
-#[derive(Debug)]
-struct IndexLookup {
-    min: isize,
-    max: isize,
-    vec: Vec<Option<usize>>,
+type Idx = usize;
+
+#[derive(Debug, Copy, Clone)]
+struct Node {
+    val: isize,
+    prev_idx: Idx,
+    next_idx: Idx,
 }
 
-impl IndexLookup {
-    fn from(file: &VecDeque<isize>) -> Self {
-        let (min, max) = minmax(&file);
-        let range = max - min + 1;
-        let mut lookup = IndexLookup {
-            min,
-            max,
-            vec: vec![None; range as usize],
-        };
-
-        for (i, v) in file.iter().enumerate() {
-            lookup.set(*v, i);
+impl Node {
+    fn from_vals(vals: &[isize]) -> Vec<Self> {
+        let mut nodes = Vec::with_capacity(vals.len());
+        let (first, rest) = vals.split_first().unwrap();
+        nodes.push(Node {
+            val: *first,
+            prev_idx: vals.len() - 1,
+            next_idx: 1,
+        });
+        let (last, rest) = rest.split_last().unwrap();
+        for (i, val) in rest.iter().enumerate() {
+            nodes.push(Node {
+                val: *val,
+                prev_idx: i,
+                next_idx: i + 2,
+            });
         }
-
-        lookup
-    }
-
-    fn set(&mut self, val: isize, index: usize) {
-        self.vec[(val - self.min) as usize] = Some(index);
-    }
-
-    fn get(&self, val: isize) -> usize {
-        self.vec[(val - self.min) as usize].unwrap()
-    }
-
-    fn swap(&mut self, val1: isize, val2: isize) {
-        self.vec
-            .swap((val1 - self.min) as usize, (val2 - self.min) as usize);
-    }
-
-    fn print(&self) {
-        for (v, i) in self.vec.iter().enumerate() {
-            if let Some(i) = i {
-                print!("{}: {:?}, ", (v as isize + self.min), i);
-            }
-        }
-        println!();
+        nodes.push(Node {
+            val: *last,
+            prev_idx: vals.len() - 2,
+            next_idx: 0,
+        });
+        nodes
     }
 }
 
