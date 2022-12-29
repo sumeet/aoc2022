@@ -1,9 +1,21 @@
 use std::collections::VecDeque;
 
 fn main() {
-    let orig_file : VecDeque<isize> = SAMPLE.split("\n").map(|s| s.parse().unwrap()).collect();
-    let mixed = mix_file(orig_file);
-    // dbg!(mixed);
+    let orig_file: VecDeque<isize> = SAMPLE
+        .trim()
+        .split("\n")
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let len = orig_file.len();
+    let (mixed, indexes) = mix_file(orig_file);
+    dbg!(&mixed);
+    let zero_pos = indexes.get(0);
+    dbg!(zero_pos);
+    let res: isize = [1000, 2000, 3000]
+        .iter()
+        .map(|i| mixed.get((zero_pos + i) % len).unwrap())
+        .sum();
+    dbg!(res);
 }
 
 // supposed to be doing:
@@ -12,14 +24,11 @@ fn main() {
 // 1, 2, 3, -2, 0, 4, -3 // 2 moves
 // 1, 2, 3, -2, 0, -3, 4 // 3 moves
 
-fn mix_file(mut file: VecDeque<isize>) -> VecDeque<isize> {
+fn mix_file(mut file: VecDeque<isize>) -> (VecDeque<isize>, IndexLookup) {
     let orig_file = file.clone();
-    let mut indexes = IndexLookup::new(&file);
+    let mut indexes = IndexLookup::from(&file);
     for val in orig_file {
-        println!("{} is moving", val);
-
         let mut index = indexes.get(val);
-        println!("{} is currently at index {}", val, index);
 
         // depending on if val is positive or negative, keep swapping that
         // index in file to the right or left, `val` number of times
@@ -30,6 +39,14 @@ fn mix_file(mut file: VecDeque<isize>) -> VecDeque<isize> {
                 file.swap(index, next_index);
                 indexes.swap(file[index], file[next_index]);
                 index = next_index;
+                if index == file.len() - 1 {
+                    let popped = file.pop_back().unwrap();
+                    file.push_front(popped);
+                    for (i, val) in file.iter().enumerate() {
+                        indexes.set(*val, i);
+                    }
+                    index = 0;
+                }
             }
         } else if val < 0 {
             for _ in 0..val.abs() {
@@ -47,10 +64,9 @@ fn mix_file(mut file: VecDeque<isize>) -> VecDeque<isize> {
                 }
             }
         }
-        dbg!(&file);
-        indexes.print();
+        // indexes.print();
     }
-    file
+    (file, indexes)
 }
 
 fn minmax(v: &VecDeque<isize>) -> (isize, isize) {
@@ -74,9 +90,8 @@ struct IndexLookup {
     vec: Vec<Option<usize>>,
 }
 
-
 impl IndexLookup {
-    fn new(file: &VecDeque<isize>) -> Self {
+    fn from(file: &VecDeque<isize>) -> Self {
         let (min, max) = minmax(&file);
         let range = max - min + 1;
         let mut lookup = IndexLookup {
@@ -101,7 +116,8 @@ impl IndexLookup {
     }
 
     fn swap(&mut self, val1: isize, val2: isize) {
-        self.vec.swap((val1 - self.min) as usize, (val2 - self.min) as usize);
+        self.vec
+            .swap((val1 - self.min) as usize, (val2 - self.min) as usize);
     }
 
     fn print(&self) {
@@ -114,11 +130,12 @@ impl IndexLookup {
     }
 }
 
-
-const SAMPLE : &str = "1
+const SAMPLE: &str = "1
 2
 -3
 3
 -2
 0
 4";
+
+const INPUT: &str = include_str!("../input.txt");
