@@ -45,32 +45,48 @@ Playstate init_playstate() {
   return playstate;
 };
 
-#define MAX_Q_SIZE 100000 // 100k
+#define MAX_Q_SIZE 9000000 // 100k
 
+typedef struct Q {
+  Playstate items[MAX_Q_SIZE];
+  uint32_t front;
+  uint32_t rear;
+} Q;
 
-Q q_init(Playstate initial_playstate) {
-  Q q;
-  STAILQ_INIT(&q);
-  QItem *entry = malloc(sizeof(QItem));
-  entry->playstate = initial_playstate;
-  STAILQ_INSERT_HEAD(&q, entry, entries);
+void q_push(Q *q, Playstate playstate) {
+  if (q->rear == MAX_Q_SIZE - 1) {
+    printf("Error: Queue is full.\n");
+    return;
+  }
+  if (q->front == -1) {
+    q->front = 0;
+  }
+  q->items[++q->rear] = playstate;
+}
+
+Q *q_init(Playstate initial_playstate) {
+  Q *q = malloc(sizeof(Q));
+  q->front = -1;
+  q->rear = -1;
+  q_push(q, initial_playstate);
   return q;
 }
 
-bool q_is_empty(Q *q) { return STAILQ_EMPTY(q); }
+bool q_is_empty(Q *q) { return q->front == -1; }
 
 Playstate q_pop(Q *q) {
-  QItem *entry = STAILQ_FIRST(q);
-  Playstate playstate = entry->playstate;
-  STAILQ_REMOVE_HEAD(q, entries);
-  free(entry);
-  return playstate;
-}
-
-void q_push(Q *q, Playstate playstate) {
-  QItem *entry = malloc(sizeof(QItem));
-  entry->playstate = playstate;
-  STAILQ_INSERT_TAIL(q, entry, entries);
+  if (q_is_empty(q)) {
+    printf("Error: Queue is empty.\n");
+    exit(1);
+  }
+  Playstate item = q->items[q->front];
+  if (q->front == q->rear) {
+    q->front = -1;
+    q->rear = -1;
+  } else {
+    q->front++;
+  }
+  return item;
 }
 
 int read_next_int(FILE *f) {
@@ -137,9 +153,9 @@ uint32_t max_quality_level(const Blueprint blueprint,
                            const Playstate initial_state) {
   uint32_t max_num_geodess[TIME_REMAINING] = {0};
   memset(max_num_geodess, 0, sizeof(max_num_geodess));
-  Q q = q_init(initial_state);
-  while (!q_is_empty(&q)) {
-    Playstate this_state = q_pop(&q);
+  Q *q = q_init(initial_state);
+  while (!q_is_empty(q)) {
+    Playstate this_state = q_pop(q);
     //    if (this_state.mats.geode <
     //    max_num_geodess[this_state.time_remaining]) {
     //      continue;
@@ -157,7 +173,7 @@ uint32_t max_quality_level(const Blueprint blueprint,
       //      if (option.mats.geode >= max_num_geodess[option.time_remaining]) {
       //        max_num_geodess[option.time_remaining] = option.mats.geode;
       if (option.time_remaining > 0)
-        q_push(&q, option);
+        q_push(q, option);
     }
     //    }
   }
