@@ -164,7 +164,6 @@ uint32_t max_quality_level(const Blueprint blueprint,
     }
 
     if (hmget(hash, this_state)) {
-//      printf("bailing because we've seen this state before\n");
       continue;
     } else {
       hmput(hash, this_state, true);
@@ -227,7 +226,6 @@ int main() {
     uint32_t result;
     pthread_join(threads[i], (void *)&result);
     total_product *= result;
-    printf("finished one robot (#%d): %d\n", i, result);
   }
   printf("part 2: %d\n", total_product);
 }
