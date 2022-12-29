@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/queue.h>
 
 #define TIME_REMAINING 32
 
@@ -46,25 +45,24 @@ Playstate init_playstate() {
   return playstate;
 };
 
-typedef struct QItem {
-  Playstate playstate;
-  SLIST_ENTRY(QItem) entries;
-} QItem;
+#define MAX_Q_SIZE 100000 // 100k
 
-typedef SLIST_HEAD(slisthead, QItem) Q;
 
-Q q_init() {
+Q q_init(Playstate initial_playstate) {
   Q q;
-  SLIST_INIT(&q);
+  STAILQ_INIT(&q);
+  QItem *entry = malloc(sizeof(QItem));
+  entry->playstate = initial_playstate;
+  STAILQ_INSERT_HEAD(&q, entry, entries);
   return q;
 }
 
-bool q_is_empty(Q *q) { return SLIST_EMPTY(q); }
+bool q_is_empty(Q *q) { return STAILQ_EMPTY(q); }
 
 Playstate q_pop(Q *q) {
-  QItem *entry = SLIST_FIRST(q);
+  QItem *entry = STAILQ_FIRST(q);
   Playstate playstate = entry->playstate;
-  SLIST_REMOVE_HEAD(q, entries);
+  STAILQ_REMOVE_HEAD(q, entries);
   free(entry);
   return playstate;
 }
@@ -72,7 +70,7 @@ Playstate q_pop(Q *q) {
 void q_push(Q *q, Playstate playstate) {
   QItem *entry = malloc(sizeof(QItem));
   entry->playstate = playstate;
-  SLIST_INSERT_HEAD(q, entry, entries);
+  STAILQ_INSERT_TAIL(q, entry, entries);
 }
 
 int read_next_int(FILE *f) {
@@ -139,13 +137,13 @@ uint32_t max_quality_level(const Blueprint blueprint,
                            const Playstate initial_state) {
   uint32_t max_num_geodess[TIME_REMAINING] = {0};
   memset(max_num_geodess, 0, sizeof(max_num_geodess));
-  Q q = q_init();
-  q_push(&q, initial_state);
+  Q q = q_init(initial_state);
   while (!q_is_empty(&q)) {
     Playstate this_state = q_pop(&q);
-    if (this_state.mats.geode < max_num_geodess[this_state.time_remaining]) {
-      continue;
-    }
+    //    if (this_state.mats.geode <
+    //    max_num_geodess[this_state.time_remaining]) {
+    //      continue;
+    //    }
 
     RobotArmy current_army = this_state.robot_army;
     BuildOptions options = building_phase(blueprint, this_state);
@@ -156,12 +154,12 @@ uint32_t max_quality_level(const Blueprint blueprint,
       option.mats.obs += current_army.num_obs_robots;
       option.mats.geode += current_army.num_geode_robots;
       option.time_remaining--;
-      if (option.mats.geode >= max_num_geodess[option.time_remaining]) {
-        max_num_geodess[option.time_remaining] = option.mats.geode;
-        if (option.time_remaining > 0)
-          q_push(&q, option);
-      }
+      //      if (option.mats.geode >= max_num_geodess[option.time_remaining]) {
+      //        max_num_geodess[option.time_remaining] = option.mats.geode;
+      if (option.time_remaining > 0)
+        q_push(&q, option);
     }
+    //    }
   }
   return max_num_geodess[0];
 }
@@ -174,7 +172,7 @@ void *max_quality_thread(void *blueprint) {
 }
 
 int main() {
-  FILE *f = fopen("input.txt", "r");
+  FILE *f = fopen("sample.txt", "r");
   if (f == NULL) {
     printf("Error opening file");
     return 1;
