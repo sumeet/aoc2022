@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 type FileEntry = (usize, isize);
 
@@ -22,14 +22,11 @@ fn main() {
         }
         move_node(&idx_by_value, &mut nodes, *val);
     }
-    // verify_nodes(&nodes);
-    print(&nodes);
-    print_b(&nodes);
-    let sum = [1000, 2000, 3000]
+    let part1 = [1000, 2000, 3000]
         .iter()
-        .map(|i| dbg!(nth_from(*i, *zero_val.unwrap(), &idx_by_value, &nodes)).1)
+        .map(|i| nth_from(*i, *zero_val.unwrap(), &idx_by_value, &nodes).1)
         .sum::<isize>();
-    dbg!(sum);
+    dbg!(part1);
 }
 
 fn nth_from(
@@ -43,41 +40,6 @@ fn nth_from(
         loc = nodes[loc].next_idx;
     }
     nodes[loc].val
-}
-
-fn verify_nodes(nodes: &[Node]) {
-    for node in nodes {
-        assert_eq!(node.val, nodes[nodes[node.next_idx].prev_idx].val);
-        assert_eq!(node.val, nodes[nodes[node.prev_idx].next_idx].val);
-    }
-    // also verify no repeats
-    // let mut seen = HashSet::new();
-    // let mut loc = 0;
-    // for _ in 0..nodes.len() {
-    //     seen.insert(nodes[loc].val);
-    //     loc = nodes[loc].next_idx;
-    // }
-    // assert_eq!(seen.len(), nodes.len());
-}
-
-fn print(nodes: &[Node]) {
-    let mut idx = 0;
-    print!("[");
-    for _ in 0..nodes.len() + 5 {
-        print!("{}, ", nodes[idx].val.1);
-        idx = nodes[idx].next_idx;
-    }
-    println!("]");
-}
-
-fn print_b(nodes: &[Node]) {
-    let mut idx = 0;
-    print!("b[");
-    for _ in 0..nodes.len() * 2 {
-        print!("{}, ", nodes[idx].val.1);
-        idx = nodes[idx].prev_idx;
-    }
-    println!("]");
 }
 
 fn move_node(idx_by_value: &HashMap<FileEntry, usize>, nodes: &mut [Node], value: FileEntry) {
@@ -94,7 +56,8 @@ fn move_node(idx_by_value: &HashMap<FileEntry, usize>, nodes: &mut [Node], value
     let value = value.1;
     if value > 0 {
         let mut idx = orig_idx;
-        for _ in 0..(value) {
+        // TODO: should be a way to not have to wrap around the list multiple times, right?
+        for _ in 0..value {
             idx = nodes[idx].next_idx;
         }
         let new_prev_index = idx;
@@ -105,6 +68,7 @@ fn move_node(idx_by_value: &HashMap<FileEntry, usize>, nodes: &mut [Node], value
         nodes[orig_idx].next_idx = new_next_index;
     } else if value < 0 {
         let mut idx = orig_idx;
+        // TODO: should be a way to not have to wrap around the list multiple times, right?
         for _ in 0..value.abs() {
             idx = nodes[idx].prev_idx;
         }
@@ -152,6 +116,7 @@ impl Node {
     }
 }
 
+#[allow(unused)]
 const SAMPLE: &str = "1
 2
 -3
@@ -161,4 +126,3 @@ const SAMPLE: &str = "1
 4";
 
 const INPUT: &str = include_str!("../input.txt");
-const INPUT_ALT: &str = include_str!("../input-alt.txt");
