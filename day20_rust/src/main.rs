@@ -3,30 +3,41 @@ use std::collections::HashMap;
 type FileEntry = (usize, isize);
 
 fn main() {
-    let orig_file = INPUT
+    let mut orig_file = INPUT
         .trim()
         .split("\n")
         .map(|s| s.parse().unwrap())
         .enumerate()
         .collect::<Vec<FileEntry>>();
-    let idx_by_value = orig_file
+    println!("part 1: {}", solve_n(&mut orig_file.clone(), 1));
+
+    const DECRYPT_KEY: isize = 811589153;
+    const NUM_MIXES: usize = 10;
+    orig_file.iter_mut().for_each(|(_, v)| *v *= DECRYPT_KEY);
+    println!("part 2: {}", solve_n(&mut orig_file, NUM_MIXES));
+}
+
+fn solve_n(orig_entries: &[FileEntry], num_mixes: usize) -> isize {
+    let idx_by_value = orig_entries
         .iter()
         .enumerate()
         .map(|(i, v)| (*v, i))
         .collect::<HashMap<_, _>>();
-    let mut nodes = Node::from_vals(&orig_file);
+    let mut nodes = Node::from_vals(orig_entries);
     let mut zero_val = None;
-    for val in &orig_file {
-        if val.1 == 0 {
-            zero_val = Some(val);
+    for _ in 0..num_mixes {
+        for val in orig_entries.iter() {
+            if val.1 == 0 {
+                zero_val = Some(val);
+            }
+            move_node(&idx_by_value, &mut nodes, *val);
         }
-        move_node(&idx_by_value, &mut nodes, *val);
     }
-    let part1 = [1000, 2000, 3000]
+
+    [1000, 2000, 3000]
         .iter()
         .map(|i| nth_from(*i, *zero_val.unwrap(), &idx_by_value, &nodes).1)
-        .sum::<isize>();
-    dbg!(part1);
+        .sum()
 }
 
 fn nth_from(
@@ -43,7 +54,8 @@ fn nth_from(
 }
 
 fn move_node(idx_by_value: &HashMap<FileEntry, usize>, nodes: &mut [Node], value: FileEntry) {
-    if value.1 == 0 {
+    let computed = value.1 % (nodes.len() as isize - 1);
+    if computed == 0 {
         return;
     }
     let orig_idx = idx_by_value[&value];
@@ -53,11 +65,9 @@ fn move_node(idx_by_value: &HashMap<FileEntry, usize>, nodes: &mut [Node], value
     nodes[node.prev_idx].next_idx = node.next_idx;
     nodes[node.next_idx].prev_idx = node.prev_idx;
 
-    let value = value.1;
-    if value > 0 {
+    if computed > 0 {
         let mut idx = orig_idx;
-        // TODO: should be a way to not have to wrap around the list multiple times, right?
-        for _ in 0..value {
+        for _ in 0..computed {
             idx = nodes[idx].next_idx;
         }
         let new_prev_index = idx;
@@ -66,10 +76,9 @@ fn move_node(idx_by_value: &HashMap<FileEntry, usize>, nodes: &mut [Node], value
         nodes[new_next_index].prev_idx = orig_idx;
         nodes[orig_idx].prev_idx = new_prev_index;
         nodes[orig_idx].next_idx = new_next_index;
-    } else if value < 0 {
+    } else if computed < 0 {
         let mut idx = orig_idx;
-        // TODO: should be a way to not have to wrap around the list multiple times, right?
-        for _ in 0..value.abs() {
+        for _ in 0..computed.abs() {
             idx = nodes[idx].prev_idx;
         }
         let new_prev_index = nodes[idx].prev_idx;
@@ -125,4 +134,5 @@ const SAMPLE: &str = "1
 0
 4";
 
+#[allow(unused)]
 const INPUT: &str = include_str!("../input.txt");
