@@ -14,7 +14,7 @@ struct Grid {
 
 impl Grid {
     fn from_rows(rows: Vec<Vec<char>>) -> Self {
-        let cols = transpose(rows.clone());
+        let cols = transpose(&rows);
         Grid { rows, cols }
     }
 
@@ -37,7 +37,7 @@ fn print_grid(g: &Vec<Vec<char>>) {
 }
 
 fn main() {
-    let (gridlines, instrs) = SAMPLE.split_once("\n\n").unwrap();
+    let (gridlines, instrs) = INPUT.trim_end().split_once("\n\n").unwrap();
     let mut g: Vec<Vec<char>> = gridlines
         .trim_end()
         .lines()
@@ -46,16 +46,17 @@ fn main() {
 
     let grid = Grid::from_rows(g.clone());
 
-    let mut dir = RIGHT;
+    let mut facing = RIGHT;
     let mut pos = Point {
         x: grid.row(0).iter().position(|&c| c == '.').unwrap(),
         y: 0,
     };
+    dbg!(pos);
     for inst in Inst::iter_from(instrs) {
         match inst {
             Inst::Move(mut n) => {
-                println!("Move {} {}", n, dir.to_string());
-                match dir {
+                // println!("Move {} {}", n, dir.to_string());
+                match facing {
                     UP => {
                         let col = grid.col(pos.x);
                         let mut col_cycle = col
@@ -65,17 +66,14 @@ fn main() {
                             .cycle()
                             .filter(|(_, &c)| c != ' ')
                             .skip(col.len() - pos.y - 1);
-                        let mut num_moved = 0;
                         let mut prev_y = pos.y;
                         while n > 0 {
                             let (y, &char) = col_cycle.next().unwrap();
                             if char == ' ' {
-                                num_moved += 1;
                                 g[prev_y][pos.x] = '^';
                                 prev_y = y;
                                 continue;
                             } else if char == '.' {
-                                num_moved += 1;
                                 g[prev_y][pos.x] = '^';
                                 prev_y = y;
                                 n -= 1;
@@ -84,7 +82,7 @@ fn main() {
                                 break;
                             }
                         }
-                        pos.y = (pos.y - num_moved) % col.len();
+                        pos.y = prev_y;
                     }
                     LEFT => {
                         let row = grid.row(pos.y);
@@ -95,18 +93,15 @@ fn main() {
                             .cycle()
                             .filter(|(_, &c)| c != ' ')
                             .skip(row.len() - pos.x - 1);
-                        let mut num_moved = 0;
                         let mut prev_x = pos.x;
                         while n > 0 {
                             let (x, &char) = row_cycle.next().unwrap();
                             if char == ' ' {
-                                num_moved += 1;
                                 g[pos.y][prev_x] = '<';
                                 prev_x = x;
                                 continue;
                             }
                             if char == '.' {
-                                num_moved += 1;
                                 g[pos.y][prev_x] = '<';
                                 prev_x = x;
                                 n -= 1;
@@ -116,7 +111,7 @@ fn main() {
                                 break;
                             }
                         }
-                        pos.x = (pos.x - num_moved) % row.len();
+                        pos.x = prev_x;
                     }
                     DOWN => {
                         let col = grid.col(pos.x);
@@ -126,18 +121,15 @@ fn main() {
                             .cycle()
                             .skip(pos.y + 1)
                             .filter(|(_, &c)| c != ' ');
-                        let mut num_moved = 0;
                         let mut prev_y = pos.y;
                         'inner: while n > 0 {
                             let (y, &char) = col_cycle.next().unwrap();
                             if char == ' ' {
-                                num_moved += 1;
                                 g[prev_y][pos.x] = 'v';
                                 prev_y = y;
                                 continue 'inner;
                             }
                             if char == '.' {
-                                num_moved += 1;
                                 g[prev_y][pos.x] = 'v';
                                 prev_y = y;
                                 n -= 1;
@@ -147,7 +139,7 @@ fn main() {
                                 break;
                             }
                         }
-                        pos.y = (pos.y + num_moved) % col.len();
+                        pos.y = prev_y;
                     }
                     RIGHT => {
                         let row = grid.row(pos.y);
@@ -157,18 +149,15 @@ fn main() {
                             .cycle()
                             .skip(pos.x + 1)
                             .filter(|(_, &c)| c != ' ');
-                        let mut num_moved = 0;
                         let mut prev_x = pos.x;
                         while n > 0 {
                             let (x, &char) = row_cycle.next().unwrap();
                             if char == ' ' {
-                                num_moved += 1;
                                 g[pos.y][prev_x] = '>';
                                 prev_x = x;
                                 continue;
                             }
                             if char == '.' {
-                                num_moved += 1;
                                 g[pos.y][prev_x] = '>';
                                 prev_x = x;
                                 n -= 1;
@@ -178,23 +167,29 @@ fn main() {
                                 break;
                             }
                         }
-                        pos.x = (pos.x + num_moved) % row.len();
+                        pos.x = prev_x;
                     }
                     _ => unreachable!(),
                 }
-                print_grid(&g);
-                println!();
-                println!();
-                println!();
+                // print_grid(&g);
+                // println!();
+                // println!();
+                // println!();
             }
             Inst::Turn(turn) => match turn {
-                'L' => dir = dir.turn_left(),
-                'R' => dir = dir.turn_right(),
+                'L' => facing = facing.turn_left(),
+                'R' => facing = facing.turn_right(),
                 _ => unreachable!(),
             },
         }
     }
-    dbg!(pos);
+    let col = pos.x + 1;
+    let row = pos.y + 1;
+    // The final password is the sum of 1000 times the row,
+    // 4 times the column, and the facing.
+    dbg!((1000 * row) + (4 * col) + facing.0 as usize);
+
+    // print_grid(&g);
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -250,18 +245,30 @@ impl Inst {
     }
 }
 
-fn transpose<T>(v: Vec<Vec<T>>) -> Vec<Vec<T>> {
-    assert!(!v.is_empty());
-    let len = v[0].len();
-    let mut iters: Vec<_> = v.into_iter().map(|n| n.into_iter()).collect();
-    (0..len)
-        .map(|_| {
-            iters
-                .iter_mut()
-                .map(|n| n.next().unwrap())
-                .collect::<Vec<T>>()
-        })
-        .collect()
+fn transpose(rows: &Vec<Vec<char>>) -> Vec<Vec<char>> {
+    let mut cols = vec![];
+    for i in 0.. {
+        let mut is_totally_empty = true;
+        let mut col = vec![];
+
+        for row in rows {
+            if let Some(&c) = row.get(i) {
+                col.push(c);
+                if c != ' ' {
+                    is_totally_empty = false;
+                }
+            } else {
+                col.push(' ');
+            }
+        }
+
+        if !is_totally_empty {
+            cols.push(col);
+        } else {
+            break;
+        }
+    }
+    cols
 }
 
 const SAMPLE: &str = "        ...#
@@ -278,3 +285,5 @@ const SAMPLE: &str = "        ...#
         ......#.
 
 10R5L5R10L4R5L5";
+
+const INPUT: &str = include_str!("input.txt");
