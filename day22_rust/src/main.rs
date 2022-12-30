@@ -27,14 +27,22 @@ impl Grid {
     }
 }
 
-fn print_grid(g: &Vec<Vec<char>>) {
-    for row in g {
-        for c in row {
-            print!("{}", c);
+#[allow(unused)]
+fn print_grid(g: &Vec<Vec<char>>, cur: Point) {
+    for (y, row) in g.iter().enumerate() {
+        for (x, c) in row.iter().enumerate() {
+            if x == cur.x && y == cur.y {
+                print!("C");
+            } else {
+                print!("{}", c);
+            }
         }
         println!();
     }
 }
+
+// ABCDEFG
+// GFEDCBA
 
 fn main() {
     let (gridlines, instrs) = INPUT.trim_end().split_once("\n\n").unwrap();
@@ -51,11 +59,10 @@ fn main() {
         x: grid.row(0).iter().position(|&c| c == '.').unwrap(),
         y: 0,
     };
-    dbg!(pos);
     for inst in Inst::iter_from(instrs) {
         match inst {
             Inst::Move(mut n) => {
-                // println!("Move {} {}", n, dir.to_string());
+                // println!("Move {} {}", n, facing.to_string());
                 match facing {
                     UP => {
                         let col = grid.col(pos.x);
@@ -64,16 +71,14 @@ fn main() {
                             .enumerate()
                             .rev()
                             .cycle()
+                            .skip(col.len() - pos.y)
                             .filter(|(_, &c)| c != ' ')
-                            .skip(col.len() - pos.y - 1);
+                            .peekable();
+
                         let mut prev_y = pos.y;
                         while n > 0 {
                             let (y, &char) = col_cycle.next().unwrap();
-                            if char == ' ' {
-                                g[prev_y][pos.x] = '^';
-                                prev_y = y;
-                                continue;
-                            } else if char == '.' {
+                            if char == '.' {
                                 g[prev_y][pos.x] = '^';
                                 prev_y = y;
                                 n -= 1;
@@ -91,23 +96,17 @@ fn main() {
                             .enumerate()
                             .rev()
                             .cycle()
-                            .filter(|(_, &c)| c != ' ')
-                            .skip(row.len() - pos.x - 1);
+                            .skip(row.len() - pos.x)
+                            .filter(|(_, &c)| c != ' ');
                         let mut prev_x = pos.x;
                         while n > 0 {
                             let (x, &char) = row_cycle.next().unwrap();
-                            if char == ' ' {
-                                g[pos.y][prev_x] = '<';
-                                prev_x = x;
-                                continue;
-                            }
                             if char == '.' {
                                 g[pos.y][prev_x] = '<';
                                 prev_x = x;
                                 n -= 1;
                                 continue;
-                            }
-                            if char == '#' {
+                            } else if char == '#' {
                                 break;
                             }
                         }
@@ -124,18 +123,12 @@ fn main() {
                         let mut prev_y = pos.y;
                         'inner: while n > 0 {
                             let (y, &char) = col_cycle.next().unwrap();
-                            if char == ' ' {
-                                g[prev_y][pos.x] = 'v';
-                                prev_y = y;
-                                continue 'inner;
-                            }
                             if char == '.' {
                                 g[prev_y][pos.x] = 'v';
                                 prev_y = y;
                                 n -= 1;
                                 continue 'inner;
-                            }
-                            if char == '#' {
+                            } else if char == '#' {
                                 break;
                             }
                         }
@@ -171,7 +164,7 @@ fn main() {
                     }
                     _ => unreachable!(),
                 }
-                // print_grid(&g);
+                // print_grid(&g, pos);
                 // println!();
                 // println!();
                 // println!();
@@ -183,13 +176,12 @@ fn main() {
             },
         }
     }
-    let col = pos.x + 1;
-    let row = pos.y + 1;
     // The final password is the sum of 1000 times the row,
     // 4 times the column, and the facing.
-    dbg!((1000 * row) + (4 * col) + facing.0 as usize);
-
-    // print_grid(&g);
+    let col = pos.x + 1;
+    let row = pos.y + 1;
+    let part1 = (1000 * row) + (4 * col) + facing.0 as usize;
+    dbg!(part1);
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -209,12 +201,13 @@ impl Dir {
         Self((self.0 + 3) % 4)
     }
 
+    #[allow(unused)]
     fn to_string(&self) -> &str {
         match *self {
-            UP => "UP",
-            LEFT => "LEFT",
-            DOWN => "DOWN",
-            RIGHT => "RIGHT",
+            UP => "up",
+            LEFT => "left",
+            DOWN => "down",
+            RIGHT => "right",
             _ => unreachable!(),
         }
     }
@@ -271,6 +264,7 @@ fn transpose(rows: &Vec<Vec<char>>) -> Vec<Vec<char>> {
     cols
 }
 
+#[allow(unused)]
 const SAMPLE: &str = "        ...#
         .#..
         #...
