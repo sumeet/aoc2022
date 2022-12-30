@@ -3,9 +3,7 @@ lines.each do |line|
   lhs, rhs = line.chomp.split(': ')
   eval "def #{lhs}; #{rhs} ; end"
 end
-PART1 = root
-puts "part 1: #{PART1}"
-
+puts "part 1: #{root}"
 
 lines.each do |line|
   lhs, rhs = line.chomp.split(': ')
