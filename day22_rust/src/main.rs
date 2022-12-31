@@ -38,15 +38,50 @@ fn transitions() -> Vec<Transition> {
             (range((99, 0), (99, 49)), RIGHT),
             (range((100, 0), (100, 49)), RIGHT),
         ),
-        // 2 -> 4 (right of 2 -> left of 4)
-        Transition::new(
-            (range((149, 0), (149, 49)), RIGHT),
-            (range((99, 100), (99, 149)), LEFT),
-        ),
         // 1 -> 3 (bottom of 1 -> top of 3)
         Transition::new(
             (range((50, 49), (99, 49)), DOWN),
             (range((50, 50), (99, 50)), DOWN),
+        ),
+        // 1 -> 5 (left of 1 -> left of 5)
+        Transition::new(
+            (range((50, 0), (50, 49)), LEFT),
+            (range((0, 149), (0, 100)), RIGHT),
+        ),
+        // 1 -> 6 (top of 1, left of 6)
+        Transition::new(
+            (range((50, 0), (99, 0)), UP),
+            (range((0, 150), (49, 199)), RIGHT),
+        ),
+        // 2 -> 3 (bottom of 2 -> right of 3)
+        Transition::new(
+            (range((100, 49), (149, 49)), DOWN),
+            (range((99, 50), (99, 99)), RIGHT),
+        ),
+        // 2 -> 4 (right of 2 -> right of 4)
+        Transition::new(
+            (range((149, 49), (149, 0)), RIGHT),
+            (range((99, 100), (99, 149)), LEFT),
+        ),
+        // 2 -> 6 (top of 2 -> bottom of 6)
+        Transition::new(
+            (range((100, 0), (149, 0)), UP),
+            (range((0, 199), (49, 199)), UP),
+        ),
+        // 3 -> 4 (bottom of 3 -> top of 4)
+        Transition::new(
+            (range((50, 99), (99, 99)), DOWN),
+            (range((50, 100), (99, 100)), DOWN),
+        ),
+        // 4 -> 5 (left of 4, right of 5)
+        Transition::new(
+            (range((50, 100), (50, 149)), LEFT),
+            (range((49, 100), (49, 149)), LEFT),
+        ),
+        // 5 -> 6 (bottom of 5, top of 6)
+        Transition::new(
+            (range((0, 149), (49, 149)), DOWN),
+            (range((0, 150), (49, 150)), DOWN),
         ),
     ]
     .into_iter()
@@ -67,8 +102,20 @@ fn range(src: impl Into<Point>, dst: impl Into<Point>) -> Range {
     let mut range = Vec::new();
     let mut x = src.x as isize;
     let mut y = src.y as isize;
-    let dx: isize = if src.x < dst.x { 1 } else { -1 };
-    let dy: isize = if src.y < dst.y { 1 } else { -1 };
+    let dx: isize = if src.x < dst.x {
+        1
+    } else if src.x > dst.x {
+        -1
+    } else {
+        0
+    };
+    let dy: isize = if src.y < dst.y {
+        1
+    } else if src.y > dst.y {
+        -1
+    } else {
+        0
+    };
     while x as usize != dst.x || y as usize != dst.y {
         range.push(Point {
             x: x as _,
@@ -117,6 +164,9 @@ fn print_grid(g: &Vec<Vec<char>>, cur: Point) {
 }
 
 fn main() {
+    let transitions = transitions();
+    assert_eq!(transitions.len(), 24);
+
     let (gridlines, instrs) = INPUT.trim_end().split_once("\n\n").unwrap();
     let mut g: Vec<Vec<char>> = gridlines
         .trim_end()
