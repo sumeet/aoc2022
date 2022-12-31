@@ -1,9 +1,84 @@
 use std::iter::from_fn;
 
+struct Transition {
+    src: (Vec<Point>, Dir),
+    dst: (Vec<Point>, Dir),
+}
+
 #[derive(Copy, Clone, Debug)]
 struct Point {
     x: usize,
     y: usize,
+}
+
+impl Transition {
+    fn new(src: (Vec<Point>, Dir), dst: (Vec<Point>, Dir)) -> Self {
+        Self { src, dst }
+    }
+
+    fn rev(&self) -> Self {
+        let src = (self.dst.0.clone(), self.dst.1.flip());
+        let dst = (self.src.0.clone(), self.src.1.flip());
+        Self { src, dst }
+    }
+}
+// ([(99,0)..(99, 49)],
+// ([(100,0)..(100,49)], Right)
+
+//struct 2to4 {
+//    points: Vec<Point>, // [(99,0)..(99, 49)]
+//    src_direction: Facing, // Right,
+//    dest_edge: (Vec<Point>, Facing), // ([(99,100)..(49,149)], Left)
+//}
+
+fn transitions() -> Vec<Transition> {
+    [
+        // 1 -> 2 (right of 1 -> left of 2)
+        Transition::new(
+            (range((99, 0), (99, 49)), RIGHT),
+            (range((100, 0), (100, 49)), RIGHT),
+        ),
+        // 2 -> 4 (right of 2 -> left of 4)
+        Transition::new(
+            (range((149, 0), (149, 49)), RIGHT),
+            (range((99, 100), (99, 149)), LEFT),
+        ),
+        // 1 -> 3 (bottom of 1 -> top of 3)
+        Transition::new(
+            (range((50, 49), (99, 49)), DOWN),
+            (range((50, 50), (99, 50)), DOWN),
+        ),
+    ]
+    .into_iter()
+    .flat_map(|t| [t.rev(), t])
+    .collect()
+}
+
+impl From<(usize, usize)> for Point {
+    fn from((x, y): (usize, usize)) -> Self {
+        Self { x, y }
+    }
+}
+
+type Range = Vec<Point>;
+fn range(src: impl Into<Point>, dst: impl Into<Point>) -> Range {
+    let src = src.into();
+    let dst = dst.into();
+    let mut range = Vec::new();
+    let mut x = src.x as isize;
+    let mut y = src.y as isize;
+    let dx: isize = if src.x < dst.x { 1 } else { -1 };
+    let dy: isize = if src.y < dst.y { 1 } else { -1 };
+    while x as usize != dst.x || y as usize != dst.y {
+        range.push(Point {
+            x: x as _,
+            y: y as _,
+        });
+        x += dx;
+        y += dy;
+    }
+    range.push(dst);
+    range
 }
 
 #[derive(Debug)]
@@ -40,9 +115,6 @@ fn print_grid(g: &Vec<Vec<char>>, cur: Point) {
         println!();
     }
 }
-
-// ABCDEFG
-// GFEDCBA
 
 fn main() {
     let (gridlines, instrs) = INPUT.trim_end().split_once("\n\n").unwrap();
@@ -184,7 +256,7 @@ fn main() {
     dbg!(part1);
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 struct Dir(u8);
 
 const UP: Dir = Dir(3);
@@ -193,6 +265,16 @@ const DOWN: Dir = Dir(1);
 const RIGHT: Dir = Dir(0);
 
 impl Dir {
+    fn flip(self) -> Self {
+        match self {
+            UP => DOWN,
+            LEFT => RIGHT,
+            DOWN => UP,
+            RIGHT => LEFT,
+            _ => unimplemented!(),
+        }
+    }
+
     fn turn_right(self) -> Self {
         Self((self.0 + 1) % 4)
     }

@@ -52,7 +52,6 @@ rhs = method($root_rhs.to_sym).call.to_s
 
 f = <<-PYTHON
 from sympy import Symbol, solve, Eq, simplify
-
 humn = Symbol("humn")
 print(solve(Eq(#{lhs}, #{rhs}), humn)[0])
 PYTHON
