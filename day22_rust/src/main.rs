@@ -2,8 +2,8 @@ use std::iter::from_fn;
 
 struct Transition {
     name: String,
-    src: (Vec<Point>, Dir),
-    dst: (Vec<Point>, Dir),
+    src: (Range, Dir),
+    dst: (Range, Dir),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -147,6 +147,7 @@ fn search_transitions(
 }
 
 type Range = Vec<Point>;
+
 fn range(src: impl Into<Point>, dst: impl Into<Point>) -> Range {
     let src = src.into();
     let dst = dst.into();
@@ -211,21 +212,14 @@ fn print_grid(g: &Vec<Vec<char>>, cur: Point) {
 
 fn next_pos(cur: Point, dir: Dir, transitions: &[Transition]) -> (Point, Dir) {
     if let Some(trans) = search_transitions(cur, dir, transitions) {
-        // println!(
-        //     "got edge on: {:?} -> {:?}",
-        //     (cur.x, cur.y),
-        //     (trans.0.x, trans.0.y)
-        // );
         trans
     } else {
-        // println!("not edge");
         (cur.apply(dir), dir)
     }
 }
 
 fn main() {
     let transitions = transitions();
-    // assert_eq!(transitions.len(), 24);
 
     let (gridlines, instrs) = INPUT.trim_end().split_once("\n\n").unwrap();
     let mut g: Vec<Vec<char>> = gridlines
@@ -243,8 +237,8 @@ fn main() {
     };
     for inst in Inst::iter_from(instrs) {
         match inst {
-            Inst::Move(mut n) => {
-                println!("Moving {} {}", n, facing.to_string());
+            Inst::Move(n) => {
+                // println!("Moving {} {}", n, facing.to_string());
                 for _ in 0..n {
                     let (next_pos, next_dir) = next_pos(pos, facing, &transitions);
                     if grid.row(next_pos.y)[next_pos.x] == '.' {
@@ -259,13 +253,12 @@ fn main() {
                         pos = next_pos;
                         facing = next_dir;
                     }
-                    println!("next: {:?}", (pos.x, pos.y));
                 }
 
-                print_grid(&g, pos);
-                println!();
-                println!();
-                println!();
+                // print_grid(&g, pos);
+                // println!();
+                // println!();
+                // println!();
             }
             Inst::Turn(turn) => match turn {
                 'L' => facing = facing.turn_left(),
@@ -278,8 +271,8 @@ fn main() {
     // 4 times the column, and the facing.
     let col = pos.x + 1;
     let row = pos.y + 1;
-    let part1 = (1000 * row) + (4 * col) + facing.0 as usize;
-    dbg!(part1);
+    let part2 = (1000 * row) + (4 * col) + facing.0 as usize;
+    dbg!(part2);
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
