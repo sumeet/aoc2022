@@ -40,14 +40,6 @@ impl Transition {
         }
     }
 }
-// ([(99,0)..(99, 49)],
-// ([(100,0)..(100,49)], Right)
-
-//struct 2to4 {
-//    points: Vec<Point>, // [(99,0)..(99, 49)]
-//    src_direction: Facing, // Right,
-//    dest_edge: (Vec<Point>, Facing), // ([(99,100)..(49,149)], Left)
-//}
 
 fn transitions() -> Vec<Transition> {
     [
@@ -63,7 +55,7 @@ fn transitions() -> Vec<Transition> {
             (range((50, 50), (99, 50)), DOWN),
             "1 -> 3".into(),
         ),
-        // 1 -> 5 (left of 1 -> left of 5)
+        // 1 -> 5 (left of 1 -> left of 5, upside down)
         Transition::new(
             (range((50, 0), (50, 49)), LEFT),
             (range((0, 149), (0, 100)), RIGHT),
@@ -81,10 +73,10 @@ fn transitions() -> Vec<Transition> {
             (range((99, 50), (99, 99)), LEFT),
             "2 -> 3".into(),
         ),
-        // 2 -> 4 (right of 2 -> right of 4)
+        // 2 -> 4 (right of 2 -> right of 4 upside down)
         Transition::new(
-            (range((149, 49), (149, 0)), RIGHT),
-            (range((99, 100), (99, 149)), LEFT),
+            (range((149, 0), (149, 49)), RIGHT),
+            (range((99, 149), (99, 100)), LEFT),
             "2 -> 4".into(),
         ),
         // 2 -> 6 (top of 2 -> bottom of 6)
@@ -102,7 +94,7 @@ fn transitions() -> Vec<Transition> {
         // 3 -> 5 (left of 3 -> top of 5)
         Transition::new(
             (range((50, 50), (50, 99)), LEFT),
-            (range((0, 100), (0, 149)), DOWN),
+            (range((0, 100), (49, 100)), DOWN),
             "3 -> 5".into(),
         ),
         // 4 -> 5 (left of 4, right of 5)
@@ -147,23 +139,11 @@ fn search_transitions(
         }
         for (i, trans_pt) in tran.src.0.iter().enumerate() {
             if point == *trans_pt {
-                println!("found transition {}", tran.name);
                 return Some((tran.dst.0[i], tran.dst.1));
             }
         }
     }
     None
-    // let src_transition = transitions
-    //     .iter()
-    //     .find(|t| t.src.0.contains(&point) && t.src.1 == dir)?;
-    // let i = src_transition
-    //     .src
-    //     .0
-    //     .iter()
-    //     .position(|p| *p == point)
-    //     .unwrap();
-    // let dst_point = src_transition.dst.0[i];
-    // Some((dst_point, src_transition.dst.1))
 }
 
 type Range = Vec<Point>;
@@ -203,21 +183,15 @@ fn range(src: impl Into<Point>, dst: impl Into<Point>) -> Range {
 #[derive(Debug)]
 struct Grid {
     rows: Vec<Vec<char>>,
-    cols: Vec<Vec<char>>,
 }
 
 impl Grid {
     fn from_rows(rows: Vec<Vec<char>>) -> Self {
-        let cols = transpose(&rows);
-        Grid { rows, cols }
+        Grid { rows }
     }
 
     fn row(&self, y: usize) -> &[char] {
         &self.rows[y]
-    }
-
-    fn col(&self, x: usize) -> &[char] {
-        &self.cols[x]
     }
 }
 
@@ -237,14 +211,14 @@ fn print_grid(g: &Vec<Vec<char>>, cur: Point) {
 
 fn next_pos(cur: Point, dir: Dir, transitions: &[Transition]) -> (Point, Dir) {
     if let Some(trans) = search_transitions(cur, dir, transitions) {
-        println!(
-            "got edge on: {:?} -> {:?}",
-            (cur.x, cur.y),
-            (trans.0.x, trans.0.y)
-        );
+        // println!(
+        //     "got edge on: {:?} -> {:?}",
+        //     (cur.x, cur.y),
+        //     (trans.0.x, trans.0.y)
+        // );
         trans
     } else {
-        println!("not edge");
+        // println!("not edge");
         (cur.apply(dir), dir)
     }
 }
@@ -370,32 +344,6 @@ impl Inst {
             Some(Inst::Turn(next))
         })
     }
-}
-
-fn transpose(rows: &Vec<Vec<char>>) -> Vec<Vec<char>> {
-    let mut cols = vec![];
-    for i in 0.. {
-        let mut is_totally_empty = true;
-        let mut col = vec![];
-
-        for row in rows {
-            if let Some(&c) = row.get(i) {
-                col.push(c);
-                if c != ' ' {
-                    is_totally_empty = false;
-                }
-            } else {
-                col.push(' ');
-            }
-        }
-
-        if !is_totally_empty {
-            cols.push(col);
-        } else {
-            break;
-        }
-    }
-    cols
 }
 
 #[allow(unused)]
