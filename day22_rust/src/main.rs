@@ -73,10 +73,20 @@ fn transitions() -> Vec<Transition> {
             (range((50, 99), (99, 99)), DOWN),
             (range((50, 100), (99, 100)), DOWN),
         ),
+        // 3 -> 5 (left of 3 -> top of 5)
+        Transition::new(
+            (range((50, 50), (50, 99)), LEFT),
+            (range((0, 100), (0, 149)), DOWN),
+        ),
         // 4 -> 5 (left of 4, right of 5)
         Transition::new(
             (range((50, 100), (50, 149)), LEFT),
             (range((49, 100), (49, 149)), LEFT),
+        ),
+        // 4 -> 6 (bottom of 4 -> right of 6)
+        Transition::new(
+            (range((50, 149), (99, 149)), DOWN),
+            (range((49, 150), (49, 199)), LEFT),
         ),
         // 5 -> 6 (bottom of 5, top of 6)
         Transition::new(
@@ -125,6 +135,7 @@ fn range(src: impl Into<Point>, dst: impl Into<Point>) -> Range {
         y += dy;
     }
     range.push(dst);
+    assert_eq!(range.len(), 50);
     range
 }
 
