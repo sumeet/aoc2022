@@ -3,13 +3,26 @@
 #![feature(box_syntax)]
 #![feature(iter_advance_by)]
 
+use std::collections::{HashMap, HashSet};
 use std::iter::once;
 
 fn main() {
-    let mut rows: Vec<Vec<char>> = SAMPLE.lines().map(|line| line.chars().collect()).collect();
+    let mut elf_pts = SAMPLE
+        .lines()
+        .enumerate()
+        .flat_map(|(y, line)| {
+            line.chars().enumerate().filter_map(|(x, c)| match c {
+                '#' => Some(Point {
+                    x: x as isize,
+                    y: y as isize,
+                }),
+                _ => None,
+            })
+        })
+        .collect::<HashSet<_>>();
+
     let mut move_orders = move_orders();
-    let src_by_dest_init: Vec<Vec<Src>> =
-        rows.iter().map(|row| vec![Src::None; row.len()]).collect();
+    let src_by_dest_init: HashMap<Point, Src> = HashMap::new();
     const NUM_ROUNDS: usize = 10;
     for round in 0..NUM_ROUNDS {
         let this_move_orders = take::<_, 4>(&mut move_orders);
@@ -24,62 +37,54 @@ fn main() {
         move_orders.advance_by(1).unwrap();
 
         let mut src_by_dest = src_by_dest_init.clone();
-        for (y, row) in rows.iter().enumerate() {
-            for (x, &ch) in row.iter().enumerate() {
-                if ch != '#' {
-                    continue;
-                }
-                println!("elf at ({},{}): ", x, y);
-                let pt = Point { x, y };
-                if all_empty(pt, &ALL_DIRS, &rows) {
-                    continue;
-                }
+        for &pt @ Point { x, y } in &elf_pts {
+            println!("elf at ({},{}): ", x, y);
+            if all_empty(pt, &ALL_DIRS, &elf_pts) {
+                continue;
+            }
 
-                'moves: for (dxdys, dest) in this_move_orders {
-                    println!("  trying to move {}", s(dest));
-                    let dest = pt.apply(dest);
-                    if dest.is_none()
-                        || rows
-                            .get(dest.unwrap().y)
-                            .and_then(|row| row.get(dest.unwrap().x))
-                            .is_none()
-                    {
-                        continue 'moves;
-                    }
-                    let dest = dest.unwrap();
-                    if all_empty(pt, &dxdys, &rows) {
-                        let src = &mut src_by_dest[dest.y][dest.x];
-                        *src = match src {
-                            Src::None => Src::One(pt),
-                            Src::One(_) => Src::Many,
-                            Src::Many => Src::Many,
-                        };
-                        println!("  moved to ({},{})", dest.x, dest.y);
-                        break 'moves;
-                    }
+            'moves: for (dxdys, dest) in this_move_orders {
+                println!("  trying to move {}", s(dest));
+                let dest = pt.apply(dest);
+                if dest.is_none() {
+                    continue 'moves;
+                }
+                let dest = dest.unwrap();
+                if all_empty(pt, &dxdys, &elf_pts) {
+                    let src = src_by_dest.entry(dest).or_insert(Src::None);
+                    *src = match src {
+                        Src::None => Src::One(pt),
+                        Src::One(_) => Src::Many,
+                        Src::Many => Src::Many,
+                    };
+                    println!("  moved to ({},{})", dest.x, dest.y);
+                    break 'moves;
                 }
             }
         }
-        for (y, row) in src_by_dest.iter().enumerate() {
-            for (x, &src) in row.iter().enumerate() {
-                if let Src::One(src) = src {
-                    rows[src.y][src.x] = '.';
-                    rows[y][x] = '#';
-                }
+        for (pt, src) in src_by_dest.iter() {
+            if let Src::One(src) = src {
+                elf_pts.remove(src);
+                elf_pts.insert(*pt);
             }
         }
         println!();
-        for row in &rows {
-            println!("{}", row.iter().collect::<String>());
-        }
+        print_grid(&elf_pts);
         println!();
     }
 }
 
-fn all_empty(pt: Point, dxdys: &[Dxdy], rows: &[Vec<char>]) -> bool {
+fn print_grid(elf_pts: &HashSet<Point>) {
+    let mut minx = isize::MAX;
+    let mut maxx = isize::MIN;
+    let mut miny = isize::MAX;
+    let mut maxy = isize::MIN;
+}
+
+fn all_empty(pt: Point, dxdys: &[Dxdy], elf_pts: &HashSet<Point>) -> bool {
     dxdys.iter().all(|&dxdy| {
         pt.apply(dxdy)
-            .map(|pt| matches!(g(&rows, pt), Some('.') | None))
+            .map(|pt| !elf_pts.contains(&pt))
             .unwrap_or(true)
     })
 }
@@ -101,10 +106,10 @@ enum Src {
     Many,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 struct Point {
-    x: usize,
-    y: usize,
+    x: isize,
+    y: isize,
 }
 
 impl Point {
