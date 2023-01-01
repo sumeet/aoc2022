@@ -36,4 +36,4 @@ to_snafu := \n -> (
   base5
 );
 
-print("part 1: " $ snafus.map(fromsnafu).sum.to_snafu);
+print ! "part 1: " $ snafus.map(fromsnafu).sum.to_snafu;
