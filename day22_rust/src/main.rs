@@ -36,21 +36,19 @@ impl Point {
     }
 
     fn is_between(&self, a: Self, b: Self) -> bool {
-        let x = match (a.x.cmp(&self.x), b.x.cmp(&self.x)) {
-            (Ordering::Less, Ordering::Greater) => true,
-            (Ordering::Greater, Ordering::Less) => true,
-            (Ordering::Equal, _) => true,
-            (_, Ordering::Equal) => true,
-            _ => false,
-        };
-        let y = match (a.y.cmp(&self.y), b.y.cmp(&self.y)) {
-            (Ordering::Less, Ordering::Greater) => true,
-            (Ordering::Greater, Ordering::Less) => true,
-            (Ordering::Equal, _) => true,
-            (_, Ordering::Equal) => true,
-            _ => false,
-        };
-        x && y
+        matches!(
+            (a.x.cmp(&self.x), b.x.cmp(&self.x)),
+            (Ordering::Less, Ordering::Greater)
+                | (Ordering::Greater, Ordering::Less)
+                | (Ordering::Equal, _)
+                | (_, Ordering::Equal)
+        ) && matches!(
+            (a.y.cmp(&self.y), b.y.cmp(&self.y)),
+            (Ordering::Less, Ordering::Greater)
+                | (Ordering::Greater, Ordering::Less)
+                | (Ordering::Equal, _)
+                | (_, Ordering::Equal)
+        )
     }
 }
 
