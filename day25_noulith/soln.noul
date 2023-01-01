@@ -1,0 +1,33 @@
+snafus := read_file("input.txt").lines;
+from_snafu := \s -> eval("5r" $ s); # requires changes to noulith lexer
+add_one := (\c -> switch (c) 
+  case '=' -> '-'
+  case '-' -> '0'
+  case '0' -> '1'
+  case '1' -> '2'
+  case '2' -> '3'
+);
+to_snafu := \n -> (
+  base5 := str_radix(n, 5);
+  while (base5.any(\c -> c == '3' or c == '4')) (
+    acc := "";
+    for (i <- 0 to len(base5) - 1) (
+      c := base5[i];
+      if (c == '3') (
+        if (acc !? (i-1)) acc[i-1] .= add_one;
+        acc $= '=';
+        continue;
+      );
+      if (c == '4') (
+        if (acc !? (i-1)) acc[i-1] .= add_one;
+        acc $= '-';
+        continue;
+      );
+      acc $= base5[i];
+    );
+    base5 = acc;
+  );
+  base5
+);
+
+print("part 1: " $ snafus.map(\s -> eval("5r" $ s)).sum.to_snafu);
