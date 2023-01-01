@@ -49,7 +49,7 @@ impl State {
                 let next_pos = self.cur_pos.apply(dxdy)?;
                 // TODO: should blizzards be a hashmap so we don't have to iterate the whole thing
                 let collision = next_blizzards.iter().any(|(c, _)| *c == next_pos);
-                if collision || grid[next_pos.y][next_pos.x] == '#' {
+                if collision || grid.get(next_pos.y)?.get(next_pos.x) == Some(&'#') {
                     return None;
                 }
 
@@ -125,21 +125,28 @@ fn main() {
     }
     let start = start.unwrap();
     let end = end.unwrap();
-    let begin = State {
+    let mut state = State {
         cur_pos: start,
         blizzards,
     };
-    let (_, part1) = astar(
-        &begin,
-        // successors
-        |state| state.nexts(&grid).into_iter().map(move |s| (s, 1)),
-        // distance from end
-        |state| state.cur_pos.dist(&end),
-        // goal?
-        |state| state.cur_pos == end,
-    )
-    .unwrap();
-    dbg!(part1);
+
+    let path = [end, start, end];
+    let mut total = 0;
+    for (i, dest) in path.iter().enumerate() {
+        let (mut path, cost) = astar(
+            &state,
+            |state| state.nexts(&grid).into_iter().map(move |s| (s, 1)),
+            |s| s.cur_pos.dist(dest),
+            |s| s.cur_pos == *dest,
+        )
+        .unwrap();
+        total += cost;
+        if i == 0 {
+            println!("part 1: {}", total);
+        }
+        state = path.pop().unwrap();
+    }
+    println!("part 2: {}", total);
 }
 
 #[allow(unused)]
