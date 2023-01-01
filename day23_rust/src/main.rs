@@ -7,11 +7,11 @@ use std::collections::{HashMap, HashSet};
 use std::iter::once;
 
 fn main() {
-    let mut elf_pts = SAMPLE
+    let mut elf_pts = INPUT
         .lines()
         .enumerate()
         .flat_map(|(y, line)| {
-            line.chars().enumerate().filter_map(|(x, c)| match c {
+            line.chars().enumerate().filter_map(move |(x, c)| match c {
                 '#' => Some(Point {
                     x: x as isize,
                     y: y as isize,
@@ -22,34 +22,18 @@ fn main() {
         .collect::<HashSet<_>>();
 
     let mut move_orders = move_orders();
-    let src_by_dest_init: HashMap<Point, Src> = HashMap::new();
-    const NUM_ROUNDS: usize = 10;
-    for round in 0..NUM_ROUNDS {
+    let mut src_by_dest: HashMap<Point, Src> = HashMap::new();
+    for round in 1.. {
         let this_move_orders = take::<_, 4>(&mut move_orders);
-        println!("-----------------------------------");
-        println!(
-            "Round {}, first direction: {}",
-            round + 1,
-            s(this_move_orders[0].1),
-        );
-        println!("-----------------------------------");
-        print_move_orders(&this_move_orders);
         move_orders.advance_by(1).unwrap();
 
-        let mut src_by_dest = src_by_dest_init.clone();
-        for &pt @ Point { x, y } in &elf_pts {
-            println!("elf at ({},{}): ", x, y);
+        for &pt in &elf_pts {
             if all_empty(pt, &ALL_DIRS, &elf_pts) {
                 continue;
             }
 
             'moves: for (dxdys, dest) in this_move_orders {
-                println!("  trying to move {}", s(dest));
                 let dest = pt.apply(dest);
-                if dest.is_none() {
-                    continue 'moves;
-                }
-                let dest = dest.unwrap();
                 if all_empty(pt, &dxdys, &elf_pts) {
                     let src = src_by_dest.entry(dest).or_insert(Src::None);
                     *src = match src {
@@ -57,46 +41,57 @@ fn main() {
                         Src::One(_) => Src::Many,
                         Src::Many => Src::Many,
                     };
-                    println!("  moved to ({},{})", dest.x, dest.y);
                     break 'moves;
                 }
             }
         }
-        for (pt, src) in src_by_dest.iter() {
+        let mut elf_has_moved = false;
+        for (pt, src) in src_by_dest.drain() {
             if let Src::One(src) = src {
-                elf_pts.remove(src);
-                elf_pts.insert(*pt);
+                elf_pts.remove(&src);
+                elf_pts.insert(pt);
+                elf_has_moved = true;
             }
         }
-        println!();
-        print_grid(&elf_pts);
-        println!();
+
+        const PART1_ROUND: usize = 10;
+        if round == PART1_ROUND - 1 {
+            dbg!(part1(&elf_pts));
+        }
+
+        if !elf_has_moved {
+            let part2 = round;
+            dbg!(part2);
+            break;
+        }
     }
 }
 
-fn print_grid(elf_pts: &HashSet<Point>) {
+fn part1(elf_pts: &HashSet<Point>) -> usize {
     let mut minx = isize::MAX;
     let mut maxx = isize::MIN;
     let mut miny = isize::MAX;
     let mut maxy = isize::MIN;
+    for Point { x, y } in elf_pts {
+        minx = minx.min(*x);
+        maxx = maxx.max(*x);
+        miny = miny.min(*y);
+        maxy = maxy.max(*y);
+    }
+    let mut num_empties = 0;
+    for y in miny..=maxy {
+        for x in minx..=maxx {
+            let pt = Point { x, y };
+            if !elf_pts.contains(&pt) {
+                num_empties += 1;
+            }
+        }
+    }
+    num_empties
 }
 
 fn all_empty(pt: Point, dxdys: &[Dxdy], elf_pts: &HashSet<Point>) -> bool {
-    dxdys.iter().all(|&dxdy| {
-        pt.apply(dxdy)
-            .map(|pt| !elf_pts.contains(&pt))
-            .unwrap_or(true)
-    })
-}
-
-fn print_move_orders(move_orders: &[([Dxdy; 3], Dxdy); 4]) {
-    for (checks, dest) in move_orders {
-        println!(
-            "Checks: {:?}, dest: {:?}",
-            checks.iter().map(|&dxdy| s(dxdy)).collect::<Vec<_>>(),
-            s(*dest),
-        );
-    }
+    dxdys.iter().all(|&dxdy| !elf_pts.contains(&pt.apply(dxdy)))
 }
 
 #[derive(Copy, Clone)]
@@ -113,11 +108,11 @@ struct Point {
 }
 
 impl Point {
-    fn apply(self, dxdy: Dxdy) -> Option<Self> {
-        Some(Self {
-            x: self.x.checked_add_signed(dxdy.0)?,
-            y: self.y.checked_add_signed(dxdy.1)?,
-        })
+    fn apply(self, dxdy: Dxdy) -> Self {
+        Self {
+            x: self.x + dxdy.0,
+            y: self.y + dxdy.1,
+        }
     }
 }
 
@@ -128,10 +123,6 @@ fn take<T, const N: usize>(it: &mut impl Iterator<Item = T>) -> [T; N] {
         unsafe { std::ptr::write(item, it.next().unwrap()) }
     }
     arr
-}
-
-fn g(rows: &[Vec<char>], p: Point) -> Option<char> {
-    rows.get(p.y)?.get(p.x).copied()
 }
 
 fn move_orders() -> impl Iterator<Item = ([Dxdy; 3], Dxdy)> {
@@ -155,36 +146,4 @@ const E: Dxdy = (1, 0);
 
 const ALL_DIRS: [Dxdy; 8] = [N, NE, NW, S, SE, SW, W, E];
 
-fn s(dxdy: Dxdy) -> String {
-    match dxdy {
-        N => format!("N"),
-        NE => format!("NE"),
-        NW => format!("NW"),
-        S => format!("S"),
-        SE => format!("SE"),
-        SW => format!("SW"),
-        W => format!("W"),
-        E => format!("E"),
-        _ => unreachable!(),
-    }
-}
-
-const SAMPLE: &str = "..............
-..............
-.......#......
-.....###.#....
-...#...#.#....
-....#...##....
-...#.###......
-...##.#.##....
-....#..#......
-..............
-..............
-..............";
-
-const SAMPLE_SMALL: &str = ".....
-..##.
-..#..
-.....
-..##.
-.....";
+const INPUT: &str = include_str!("../input.txt");
