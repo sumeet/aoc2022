@@ -1,8 +1,8 @@
-snafus := read_file("input.txt").lines;
 fromdigit := \d -> switch(d)
   case '-' -> -1
   case '=' -> -2
   case _ -> int(d);
+
 fromsnafu := \s ->
   s fold (\acc, c -> (acc * 5) + fromdigit(c)) from 0;
 
@@ -11,29 +11,25 @@ add_one := \c -> switch (c)
   case '-' -> '0'
   case '0' -> '1'
   case '1' -> '2'
-  case '2' -> '3'
-;
+  case '2' -> '3';
+
 to_snafu := \n -> (
   base5 := str_radix(n, 5);
   while (base5.any(\c -> c == '3' or c == '4')) (
-    acc := "";
-    for (i <- 0 to len(base5) - 1) (
-      c := base5[i];
-      if (c == '3') (
-        if (acc !? (i-1)) acc[i-1] .= add_one;
-        acc $= '=';
-        continue;
-      );
-      if (c == '4') (
-        if (acc !? (i-1)) acc[i-1] .= add_one;
-        acc $= '-';
-        continue;
-      );
-      acc $= base5[i];
+    base5 fold= (\acc, c -> switch(c)
+      case '3' -> (
+        if (acc) acc[-1] .= add_one;
+        acc $ '='
+      )
+      case '4' -> (
+        if (acc) acc[-1] .= add_one;
+        acc $ '-'
+      )
+      case _ -> acc $ c
     );
-    base5 = acc;
   );
   base5
 );
 
+snafus := read_file("input.txt").lines;
 print ! "part 1: " $ snafus.map(fromsnafu).sum.to_snafu;
