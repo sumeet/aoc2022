@@ -1,9 +1,20 @@
+use std::cmp::Ordering;
 use std::iter::from_fn;
 
 struct Transition {
     name: String,
-    src: (Range, Dir),
-    dst: (Range, Dir),
+    src: (Range, Facing),
+    dst: (Range, Facing),
+}
+
+impl Transition {
+    fn map_src(&self, pt: Point, facing: Facing) -> Option<(Point, Facing)> {
+        if self.src.1 != facing {
+            return None;
+        }
+        let index = self.src.0.index(pt)?;
+        Some((self.dst.0.nth(index), self.dst.1))
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -13,7 +24,7 @@ struct Point {
 }
 
 impl Point {
-    fn apply(mut self, dir: Dir) -> Self {
+    fn apply(mut self, dir: Facing) -> Self {
         match dir {
             UP => self.y -= 1,
             DOWN => self.y += 1,
@@ -23,10 +34,28 @@ impl Point {
         }
         self
     }
+
+    fn is_between(&self, a: Self, b: Self) -> bool {
+        let x = match (a.x.cmp(&self.x), b.x.cmp(&self.x)) {
+            (Ordering::Less, Ordering::Greater) => true,
+            (Ordering::Greater, Ordering::Less) => true,
+            (Ordering::Equal, _) => true,
+            (_, Ordering::Equal) => true,
+            _ => false,
+        };
+        let y = match (a.y.cmp(&self.y), b.y.cmp(&self.y)) {
+            (Ordering::Less, Ordering::Greater) => true,
+            (Ordering::Greater, Ordering::Less) => true,
+            (Ordering::Equal, _) => true,
+            (_, Ordering::Equal) => true,
+            _ => false,
+        };
+        x && y
+    }
 }
 
 impl Transition {
-    fn new(src: (Vec<Point>, Dir), dst: (Vec<Point>, Dir), name: String) -> Self {
+    fn new(src: (Range, Facing), dst: (Range, Facing), name: String) -> Self {
         Self { src, dst, name }
     }
 
@@ -127,72 +156,55 @@ impl From<(usize, usize)> for Point {
     }
 }
 
+fn ordcmp(a: usize, b: usize) -> isize {
+    match a.cmp(&b) {
+        Ordering::Less => -1,
+        Ordering::Equal => 0,
+        Ordering::Greater => 1,
+    }
+}
+
 fn search_transitions(
     point: impl Into<Point>,
-    dir: Dir,
+    facing: Facing,
     transitions: &[Transition],
-) -> Option<(Point, Dir)> {
+) -> Option<(Point, Facing)> {
     let point = point.into();
     for tran in transitions {
-        if dir != tran.src.1 {
-            continue;
-        }
-        for (i, trans_pt) in tran.src.0.iter().enumerate() {
-            if point == *trans_pt {
-                return Some((tran.dst.0[i], tran.dst.1));
-            }
+        if let Some(dst) = tran.map_src(point, facing) {
+            return Some(dst);
         }
     }
     None
 }
 
-type Range = Vec<Point>;
+#[derive(Clone, Copy)]
+struct Range {
+    src: Point,
+    dst: Point,
+}
+
+impl Range {
+    fn index(&self, pt: Point) -> Option<usize> {
+        if pt.is_between(self.src, self.dst) {
+            Some(self.src.x.abs_diff(pt.x) + self.src.y.abs_diff(pt.y))
+        } else {
+            None
+        }
+    }
+
+    fn nth(&self, index: usize) -> Point {
+        let mut start = self.src;
+        start.x = (start.x as isize + (ordcmp(self.dst.x, self.src.x) * index as isize)) as _;
+        start.y = (start.y as isize + (ordcmp(self.dst.y, self.src.y) * index as isize)) as _;
+        start
+    }
+}
 
 fn range(src: impl Into<Point>, dst: impl Into<Point>) -> Range {
-    let src = src.into();
-    let dst = dst.into();
-    let mut range = Vec::new();
-    let mut x = src.x as isize;
-    let mut y = src.y as isize;
-    let dx: isize = if src.x < dst.x {
-        1
-    } else if src.x > dst.x {
-        -1
-    } else {
-        0
-    };
-    let dy: isize = if src.y < dst.y {
-        1
-    } else if src.y > dst.y {
-        -1
-    } else {
-        0
-    };
-    while x as usize != dst.x || y as usize != dst.y {
-        range.push(Point {
-            x: x as _,
-            y: y as _,
-        });
-        x += dx;
-        y += dy;
-    }
-    range.push(dst);
-    assert_eq!(range.len(), 50);
-    range
-}
-
-#[derive(Debug)]
-struct Grid {
-    rows: Vec<Vec<char>>,
-}
-
-impl Grid {
-    fn from_rows(rows: Vec<Vec<char>>) -> Self {
-        Grid { rows }
-    }
-
-    fn row(&self, y: usize) -> &[char] {
-        &self.rows[y]
+    Range {
+        src: src.into(),
+        dst: dst.into(),
     }
 }
 
@@ -210,11 +222,11 @@ fn print_grid(g: &Vec<Vec<char>>, cur: Point) {
     }
 }
 
-fn next_pos(cur: Point, dir: Dir, transitions: &[Transition]) -> (Point, Dir) {
-    if let Some(trans) = search_transitions(cur, dir, transitions) {
+fn next_pos(cur: Point, facing: Facing, transitions: &[Transition]) -> (Point, Facing) {
+    if let Some(trans) = search_transitions(cur, facing, transitions) {
         trans
     } else {
-        (cur.apply(dir), dir)
+        (cur.apply(facing), facing)
     }
 }
 
@@ -222,33 +234,37 @@ fn main() {
     let transitions = transitions();
 
     let (gridlines, instrs) = INPUT.trim_end().split_once("\n\n").unwrap();
-    let mut g: Vec<Vec<char>> = gridlines
+    let grid: Vec<Vec<char>> = gridlines
         .trim_end()
         .lines()
         .map(|l| l.trim_end().chars().collect())
         .collect();
 
-    let grid = Grid::from_rows(g.clone());
+    #[cfg(debug_assertions)]
+    let mut debug_g = grid.clone();
 
     let mut facing = RIGHT;
     let mut pos = Point {
-        x: grid.row(0).iter().position(|&c| c == '.').unwrap(),
+        x: grid[0].iter().position(|&c| c == '.').unwrap(),
         y: 0,
     };
-    for inst in Inst::iter_from(instrs) {
+    for inst in parse(instrs) {
         match inst {
             Inst::Move(n) => {
                 // println!("Moving {} {}", n, facing.to_string());
                 for _ in 0..n {
                     let (next_pos, next_dir) = next_pos(pos, facing, &transitions);
-                    if grid.row(next_pos.y)[next_pos.x] == '.' {
-                        g[pos.y][pos.x] = match facing {
-                            UP => '^',
-                            DOWN => 'v',
-                            RIGHT => '>',
-                            LEFT => '<',
-                            _ => unreachable!(),
-                        };
+                    if grid[next_pos.y][next_pos.x] == '.' {
+                        #[cfg(debug_assertions)]
+                        {
+                            debug_g[pos.y][pos.x] = match facing {
+                                UP => '^',
+                                DOWN => 'v',
+                                RIGHT => '>',
+                                LEFT => '<',
+                                _ => unreachable!(),
+                            };
+                        }
 
                         pos = next_pos;
                         facing = next_dir;
@@ -267,8 +283,6 @@ fn main() {
             },
         }
     }
-    // The final password is the sum of 1000 times the row,
-    // 4 times the column, and the facing.
     let col = pos.x + 1;
     let row = pos.y + 1;
     let part2 = (1000 * row) + (4 * col) + facing.0 as usize;
@@ -276,14 +290,14 @@ fn main() {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
-struct Dir(u8);
+struct Facing(u8);
 
-const UP: Dir = Dir(3);
-const LEFT: Dir = Dir(2);
-const DOWN: Dir = Dir(1);
-const RIGHT: Dir = Dir(0);
+const UP: Facing = Facing(3);
+const LEFT: Facing = Facing(2);
+const DOWN: Facing = Facing(1);
+const RIGHT: Facing = Facing(0);
 
-impl Dir {
+impl Facing {
     fn flip(self) -> Self {
         match self {
             UP => DOWN,
@@ -320,39 +334,21 @@ enum Inst {
     Turn(char),
 }
 
-impl Inst {
-    fn iter_from(s: &str) -> impl Iterator<Item = Self> + '_ {
-        let mut i = s.chars().peekable();
-        from_fn(move || {
-            let mut next = i.next()?;
-            let mut n = 0;
-            while next.is_ascii_digit() {
-                n = n * 10 + next.to_digit(10).unwrap() as usize;
-                if i.peek().is_none() || !i.peek().unwrap().is_ascii_digit() {
-                    let ret = Inst::Move(n);
-                    return Some(ret);
-                }
-                next = i.next()?;
+fn parse(s: &str) -> impl Iterator<Item = Inst> + '_ {
+    let mut i = s.chars().peekable();
+    from_fn(move || {
+        let mut next = i.next()?;
+        let mut n = 0;
+        while next.is_ascii_digit() {
+            n = n * 10 + next.to_digit(10).unwrap() as usize;
+            if i.peek().is_none() || !i.peek().unwrap().is_ascii_digit() {
+                let ret = Inst::Move(n);
+                return Some(ret);
             }
-            Some(Inst::Turn(next))
-        })
-    }
+            next = i.next()?;
+        }
+        Some(Inst::Turn(next))
+    })
 }
-
-#[allow(unused)]
-const SAMPLE: &str = "        ...#
-        .#..
-        #...
-        ....
-...#.......#
-........#...
-..#....#....
-..........#.
-        ...#....
-        .....#..
-        .#......
-        ......#.
-
-10R5L5R10L4R5L5";
 
 const INPUT: &str = include_str!("input.txt");
