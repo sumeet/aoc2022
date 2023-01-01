@@ -1,7 +1,6 @@
 use pathfinding::prelude::astar;
-use std::collections::{BTreeMap, HashMap};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 struct Coord {
     x: usize,
     y: usize,
@@ -20,12 +19,10 @@ impl Coord {
     }
 }
 
-type Blizzards = BTreeMap<Coord, Vec<char>>;
-
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct State {
     cur_pos: Coord,
-    blizzards: Blizzards,
+    blizzards: Vec<(Coord, char)>,
 }
 
 impl State {
@@ -34,15 +31,8 @@ impl State {
         for (y, row) in grid.iter().enumerate() {
             for (x, c) in row.iter().enumerate() {
                 let coord = Coord { x, y };
-                if let Some(c) = self.blizzards.get(&coord) {
-                    print!(
-                        "{}",
-                        if c.len() > 1 {
-                            format!("{}", c.len())
-                        } else {
-                            format!("{}", c[0])
-                        }
-                    );
+                if let Some((_, c)) = self.blizzards.iter().find(|(c, _)| *c == coord) {
+                    print!("{}", c);
                 } else {
                     print!("{}", c);
                 }
@@ -52,7 +42,7 @@ impl State {
     }
 
     fn nexts<'a, 'b>(&'a self, grid: &'a [Vec<char>]) -> Vec<Self> {
-        let next_blizzards = next_blizzards(&self.blizzards, grid);
+        let next_blizzards = next_blizzards(self.blizzards.clone(), grid);
         [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)] // 0,0 is for waiting
             .into_iter()
             .filter_map(move |dxdy| {
@@ -72,38 +62,34 @@ impl State {
     }
 }
 
-fn next_blizzards(blizzards: &Blizzards, grid: &[Vec<char>]) -> Blizzards {
-    let mut next_blizzards = Blizzards::new();
-    for (coord, dirs) in blizzards.iter() {
-        for dir in dirs {
-            let (dx, dy) = match dir {
-                '^' => (0, -1),
-                'v' => (0, 1),
-                '<' => (-1, 0),
-                '>' => (1, 0),
-                _ => panic!("Invalid direction"),
-            };
-            let c @ Coord { x, y } = coord.apply((dx, dy)).unwrap();
-            let row = &grid[y];
-            let next_coord = match row[x] {
-                '.' => c,
-                '#' => match dir {
-                    '^' | 'v' => Coord {
-                        x,
-                        y: if y == 0 { grid.len() - 2 } else { 1 },
-                    },
-                    '<' | '>' => Coord {
-                        x: if x == 0 { row.len() - 2 } else { 1 },
-                        y,
-                    },
-                    _ => unreachable!(),
+fn next_blizzards(mut blizzards: Vec<(Coord, char)>, grid: &[Vec<char>]) -> Vec<(Coord, char)> {
+    for (coord, dir) in &mut blizzards {
+        let (dx, dy) = match dir {
+            '^' => (0, -1),
+            'v' => (0, 1),
+            '<' => (-1, 0),
+            '>' => (1, 0),
+            _ => panic!("Invalid direction"),
+        };
+        let c @ Coord { x, y } = coord.apply((dx, dy)).unwrap();
+        let row = &grid[y];
+        *coord = match row[x] {
+            '.' => c,
+            '#' => match dir {
+                '^' | 'v' => Coord {
+                    x,
+                    y: if y == 0 { grid.len() - 2 } else { 1 },
                 },
-                otherwise => panic!("Invalid tile: {}", otherwise),
-            };
-            next_blizzards.entry(next_coord).or_default().push(*dir);
-        }
+                '<' | '>' => Coord {
+                    x: if x == 0 { row.len() - 2 } else { 1 },
+                    y,
+                },
+                _ => unreachable!(),
+            },
+            otherwise => panic!("Invalid tile: {}", otherwise),
+        };
     }
-    next_blizzards
+    blizzards
 }
 
 fn main() {
@@ -111,7 +97,7 @@ fn main() {
     let mut end = None;
 
     let mut grid: Vec<Vec<char>> = vec![];
-    let mut blizzards = Blizzards::new();
+    let mut blizzards: Vec<(Coord, char)> = vec![];
     let input = INPUT;
     let lines_ct = input.lines().count();
     for (y, line) in input.lines().enumerate() {
@@ -119,7 +105,7 @@ fn main() {
         for (x, mut ch) in line.chars().enumerate() {
             match ch {
                 '>' | '<' | '^' | 'v' => {
-                    blizzards.entry(Coord { x, y }).or_default().push(ch);
+                    blizzards.push((Coord { x, y }, ch));
                     ch = '.';
                 }
                 '.' => {
