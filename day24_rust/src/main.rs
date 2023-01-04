@@ -1,5 +1,21 @@
 use pathfinding::prelude::astar;
 
+fn get_blizzards_cached<'a>(
+    grid: &[Vec<char>],
+    blizzard_cache: &'a mut Vec<Blizzards>,
+    n: usize,
+) -> &'a Blizzards {
+    if blizzard_cache.len() > n {
+        return &blizzard_cache[n];
+    }
+    let b = next_blizzards(
+        get_blizzards_cached(grid, blizzard_cache, n - 1).clone(),
+        grid,
+    );
+    blizzard_cache.push(b);
+    blizzard_cache.last().unwrap()
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 struct Coord {
     x: usize,
@@ -19,19 +35,21 @@ impl Coord {
     }
 }
 
+type Blizzards = Vec<(Coord, char)>;
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct State {
     cur_pos: Coord,
-    blizzards: Vec<(Coord, char)>,
+    n: usize,
 }
 
 impl State {
     #[allow(unused)]
-    fn print(&self, grid: &[Vec<char>]) {
+    fn print(&self, grid: &[Vec<char>], blizzards: &Blizzards) {
         for (y, row) in grid.iter().enumerate() {
             for (x, c) in row.iter().enumerate() {
                 let coord = Coord { x, y };
-                if let Some((_, c)) = self.blizzards.iter().find(|(c, _)| *c == coord) {
+                if let Some((_, c)) = blizzards.iter().find(|(c, _)| *c == coord) {
                     print!("{}", c);
                 } else {
                     print!("{}", c);
@@ -41,8 +59,12 @@ impl State {
         }
     }
 
-    fn nexts<'a, 'b>(&'a self, grid: &'a [Vec<char>]) -> Vec<Self> {
-        let next_blizzards = next_blizzards(self.blizzards.clone(), grid);
+    fn nexts<'a, 'b>(
+        &'a self,
+        grid: &'a [Vec<char>],
+        blizzard_cache: &mut Vec<Blizzards>,
+    ) -> Vec<Self> {
+        let next_blizzards = get_blizzards_cached(grid, blizzard_cache, self.n);
         [(0, 1), (0, -1), (1, 0), (-1, 0), (0, 0)] // 0,0 is for waiting
             .into_iter()
             .filter_map(move |dxdy| {
@@ -55,7 +77,7 @@ impl State {
 
                 Some(State {
                     cur_pos: next_pos,
-                    blizzards: next_blizzards.clone(),
+                    n: self.n + 1,
                 })
             })
             .collect()
@@ -127,26 +149,33 @@ fn main() {
     let end = end.unwrap();
     let mut state = State {
         cur_pos: start,
-        blizzards,
+        n: 0,
     };
 
+    let mut blizzard_cache = vec![];
+    blizzard_cache.push(blizzards);
     let path = [end, start, end];
     let mut total = 0;
     for (i, dest) in path.iter().enumerate() {
         let (mut path, cost) = astar(
             &state,
-            |state| state.nexts(&grid).into_iter().map(move |s| (s, 1)),
+            |state| {
+                state
+                    .nexts(&grid, &mut blizzard_cache)
+                    .into_iter()
+                    .map(move |s| (s, 1))
+            },
             |s| s.cur_pos.dist(dest),
             |s| s.cur_pos == *dest,
         )
         .unwrap();
         total += cost;
         if i == 0 {
-            println!("part 1: {}", total);
+            println!("part 1: {}", total - 1);
         }
         state = path.pop().unwrap();
     }
-    println!("part 2: {}", total);
+    println!("part 2: {}", total - 1);
 }
 
 #[allow(unused)]
