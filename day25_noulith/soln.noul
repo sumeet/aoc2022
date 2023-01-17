@@ -1,10 +1,9 @@
 fromdigit := \d -> switch(d)
   case '-' -> -1
   case '=' -> -2
-  case _ -> int(d);
+  case o -> int(o);
 
-fromsnafu := \s ->
-  s fold (\acc, c -> (acc * 5) + fromdigit(c)) from 0;
+fromsnafu := _ fold (\acc, c -> (acc * 5) + fromdigit(c)) from 0;
 
 add_one := \c -> switch (c) 
   case '=' -> '-'
